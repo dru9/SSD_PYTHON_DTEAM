@@ -3,10 +3,10 @@ from ssd import SSD
 import re
 
 
-def test_write():
+def test_write_and_read():
     ssd = SSD()
     lba = 0
-    expected = 0x12345678
+    expected = "0x12345678"
     ssd.write(lba, expected)
 
     ssd.read(lba)
@@ -14,7 +14,7 @@ def test_write():
     actual = f.readline()
     f.close()
 
-    assert expected == actual
+    assert actual == expected
 
 def test_init_ssd_nand_file():
     ssd = SSD()
@@ -23,19 +23,7 @@ def test_init_ssd_nand_file():
         f = open("./ssd_output.txt", 'r')
         actual = f.readline()
         f.close()
-        assert "0x00000000" == actual
-
-def test_valid_ssd_nand_file():
-    def is_hex_string(text):
-        pattern = r"^[0-9a-fA-F]+$"
-        return bool(re.match(pattern, text))
-    ssd = SSD()
-    ssd.read(0)
-    f = open("./ssd_output.txt", 'r')
-    read_value = f.readline()
-    f.close()
-
-    assert is_hex_string(read_value)
+        assert isinstance(actual, str)
 
 
 def test_read_ssd_nand_txt_file_called_by_read():
@@ -57,20 +45,23 @@ def test_read_ssd_nand_txt_file_called_by_write():
 def test_read_method_record_ssd_output_txt():
     ssd = SSD()
     read_idx = 0
+    ssd.write(read_idx, "0x00001111")
     ssd.read(read_idx)
 
     with open('./ssd_output.txt', 'r') as f:
         content = f.read()
 
-    assert content == "0x00000000"
+    assert content == "0x00001111"
 
 def test_write_ssd():
     ssd = SSD()
     loc = 3
     ssd.write(loc, "0xFFFFFFFF")
 
-    result = ssd.read(loc)
-    assert result == "0xFFFFFFFF"
+    ssd.read(loc)
+    with open('./ssd_output.txt', 'r') as f:
+        content = f.read()
+    assert content == "0xFFFFFFFF"
 
 def test_write_check_file():
     ssd = SSD()

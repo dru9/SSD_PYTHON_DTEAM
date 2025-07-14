@@ -16,7 +16,15 @@ class SSD:
             self.contents += f.readline()
 
     def read(self, LBA):
-        pass
+        if LBA < 0 or LBA > 99:
+            self.write_output_file("ERROR")
+            return
+
+        data_list = self.file_to_dict()
+        if data_list == "":
+            self.write_output_file("ERROR")
+        self.dict_to_file(data_list)
+        self.write_output_file(data_list[LBA])
 
     def file_to_dict(self):
         result = {}
@@ -50,5 +58,6 @@ class SSD:
         data_list.get(LBA, "")
         if data_list == "":
             self.write_output_file("ERROR")
+        data_list[LBA] = data
         self.dict_to_file(data_list)
         self.write_output_file("")
