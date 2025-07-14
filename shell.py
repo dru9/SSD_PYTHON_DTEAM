@@ -7,7 +7,7 @@ from consts.help_msg import HELP_MSG
 
 @dataclass
 class ShellConfig:
-    SSD_PY_PAHT = "ssd.py"
+    SSD_PY_PATH = "ssd.py"
 
 
 class Shell:
