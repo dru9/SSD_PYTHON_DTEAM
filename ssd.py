@@ -22,6 +22,7 @@ class SSD:
         self.contents = ""
         with open(FILE_PATH, "r") as f:
             self.contents += f.readline()
+        self.file_manager = FileManager()
 
     def read(self, LBA):
         if LBA < 0 or LBA > 99:
