@@ -4,6 +4,14 @@ FILE_PATH = "ssd_nand.txt"
 OUT_FILE_PATH = "ssd_output.txt"
 
 
+class FileManager:
+    def read_nand_txt(self, lba):
+        pass
+
+    def write_output_txt(self, contents: str):
+        pass
+
+
 class SSD:
     def __init__(self):
         if not os.path.exists(FILE_PATH):
