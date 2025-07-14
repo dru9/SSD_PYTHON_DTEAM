@@ -1,8 +1,8 @@
-
 import os
 
 FILE_PATH = "ssd_nand.txt"
 OUT_FILE_PATH = "ssd_output.txt"
+
 
 class SSD:
     def __init__(self):
@@ -12,7 +12,7 @@ class SSD:
                     f.write(f"{i}\t0x00000000\n")
 
         self.contents = ""
-        with open(FILE_PATH,"r") as f:
+        with open(FILE_PATH, "r") as f:
             self.contents += f.readline()
 
     def read(self, LBA):
@@ -47,6 +47,8 @@ class SSD:
             return
 
         data_list = self.file_to_dict()
-        data_list[LBA] = data
+        data_list.get(LBA, "")
+        if data_list == "":
+            self.write_output_file("ERROR")
         self.dict_to_file(data_list)
         self.write_output_file("")
