@@ -1,7 +1,8 @@
 
 import os
 
-FILE_PATH = "ssd_output.txt"
+FILE_PATH = "ssd_nand.txt"
+
 class SSD:
     def __init__(self):
         if not os.path.exists(FILE_PATH):
@@ -14,3 +15,4 @@ class SSD:
 
     def write(self, LBA, data):
         pass
+
