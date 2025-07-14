@@ -11,6 +11,10 @@ class SSD:
                 for i in range(100):
                     f.write(f"{i}\t0x00000000\n")
 
+        self.contents = ""
+        with open(FILE_PATH,"r") as f:
+            self.contents += f.readline()
+
     def read(self, LBA):
         pass
 
