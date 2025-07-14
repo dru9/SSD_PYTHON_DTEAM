@@ -15,17 +15,17 @@ class Command(Enum):
     INVALID = "invalid"
 
 
+VALUE_REQUIRE_COMMANDS = [Command.WRITE, Command.FULLWRITE]
+
+
 @dataclass
 class Config:
-    pass
+    SSD_PY_PAHT = "ssd.py"
 
 
 class Shell:
     def __init__(self, config):
         self.config = config
-
-    def execute_command(self, command, args):
-        print("command executed")
 
     def get_command(self):
         try:
@@ -34,14 +34,30 @@ class Shell:
                 return None, []
 
             parts = user_input.split()
-            command_str = parts[0]
+            cmd_str = parts[0]
             args = parts[1:]
 
-            command = self.find_command(command_str)
-            return command, args
+            cmd = self.find_command(cmd_str)
+
+            if cmd in VALUE_REQUIRE_COMMANDS and len(args) == 0:
+                return Command.INVALID, []
+
+            return cmd, args
 
         except (KeyboardInterrupt, EOFError):
             return Command.EXIT, []
+
+    @staticmethod
+    def find_command(command_str: str):
+        command_str = command_str.lower()
+
+        for cmd in Command:
+            if cmd.value == command_str:
+                return cmd
+            elif cmd.value.startswith(command_str):
+                return cmd
+
+        return Command.INVALID
 
     def read(self, lba: int):
         pass
@@ -58,9 +74,6 @@ class Shell:
     def full_read(self):
         pass
 
-    def find_command(self, command_str: str):
-        return 'c', 'a'
-
     def script_1(self):
         pass
 
@@ -70,16 +83,17 @@ class Shell:
     def script_3(self):
         pass
 
+    def execute_command(self, command, args):
+        print(f"Entered command: {command}  with args: {args}")
+
     def main_loop(self):
         while True:
             command, args = self.get_command()
 
-            if command is None:  # 빈 입력
+            if command is None:
                 continue
 
-            if command == 'c':
-                print("command entered!")
-                break
+            if command == Command.EXIT: break
 
             self.execute_command(command, args)
 
