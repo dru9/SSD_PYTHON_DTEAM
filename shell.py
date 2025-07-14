@@ -27,9 +27,6 @@ class Shell:
     def __init__(self, config):
         self.config = config
 
-    def execute_command(self, command, args):
-        print(f"Entered command: {command}  with args: {args}")
-
     def get_command(self):
         try:
             user_input = input("Shell> ").strip()
@@ -50,6 +47,18 @@ class Shell:
         except (KeyboardInterrupt, EOFError):
             return Command.EXIT, []
 
+    @staticmethod
+    def find_command(command_str: str):
+        command_str = command_str.lower()
+
+        for cmd in Command:
+            if cmd.value == command_str:
+                return cmd
+            elif cmd.value.startswith(command_str):
+                return cmd
+
+        return Command.INVALID
+
     def read(self, lba: int):
         pass
 
@@ -65,18 +74,6 @@ class Shell:
     def full_read(self):
         pass
 
-    @staticmethod
-    def find_command(command_str: str):
-        command_str = command_str.lower()
-
-        for cmd in Command:
-            if cmd.value == command_str:
-                return cmd
-            elif cmd.value.startswith(command_str):
-                return cmd
-
-        return Command.INVALID
-
     def script_1(self):
         pass
 
@@ -85,6 +82,9 @@ class Shell:
 
     def script_3(self):
         pass
+
+    def execute_command(self, command, args):
+        print(f"Entered command: {command}  with args: {args}")
 
     def main_loop(self):
         while True:
