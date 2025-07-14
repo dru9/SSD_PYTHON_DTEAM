@@ -1,4 +1,4 @@
-from pytest_mock import MockerFixture
+from pytest_mock import MockerFixture  # noqa
 
 
 def test_shell_read(mocker: MockerFixture):
@@ -26,7 +26,7 @@ def test_full_read(mocker: MockerFixture):
     for i in range(100):
         ret += f"\nLBA {i:0>2} : 0x00000000"
     shell.full_read.return_value = ret
-    res = shell.full_read(lba=0)
+    res = shell.full_read()
     assert res == ret
     shell.full_read.assert_called()
 
