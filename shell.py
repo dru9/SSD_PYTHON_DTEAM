@@ -52,7 +52,7 @@ class Shell:
     def write_error_to_output(self):
         pass
 
-    def full_write(self):
+    def full_write(self, value: str):
         pass
 
     def full_read(self):
