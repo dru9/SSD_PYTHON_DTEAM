@@ -1,30 +1,17 @@
 from dataclasses import dataclass
-from enum import Enum
 
-
-class Command(Enum):
-    WRITE = "write"
-    READ = "read"
-    FULLWRITE = "fullwrite"
-    FULLREAD = "fullread"
-    HELP = "help"
-    EXIT = "exit"
-    SCRIPT_1 = "1_"
-    SCRIPT_2 = "2_"
-    SCRIPT_3 = "3_"
-    INVALID = "invalid"
-
-
-VALUE_REQUIRE_COMMANDS = [Command.WRITE, Command.FULLWRITE]
+from consts.commands import Command
+from consts.commands import VALUE_REQUIRE_COMMANDS
+from consts.help_msg import HELP_MSG
 
 
 @dataclass
-class Config:
+class ShellConfig:
     SSD_PY_PAHT = "ssd.py"
 
 
 class Shell:
-    def __init__(self, config):
+    def __init__(self, config: ShellConfig):
         self.config = config
 
     def get_command(self):
@@ -83,8 +70,10 @@ class Shell:
     def script_3(self):
         pass
 
-    def execute_command(self, command, args):
+    def execute_command(self, command: str, args: list):
         print(f"Entered command: {command}  with args: {args}")
+        if command == Command.HELP:
+            print(HELP_MSG)
 
     def main_loop(self):
         while True:
@@ -99,6 +88,6 @@ class Shell:
 
 
 if __name__ == "__main__":
-    config = Config()
+    config = ShellConfig()
     shell = Shell(config)
     shell.main_loop()

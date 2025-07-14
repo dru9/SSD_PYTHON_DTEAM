@@ -1,0 +1,16 @@
+HELP_MSG = """usage: <command> [<args>]
+
+read: read a value from the given LBA
+write: write a given value to the given LBA
+exit: terminate the program
+help: lists available subcommands
+fullwrite: write to all of the LBAs
+fullread: read all of the LBAs
+test scripts:
+    1_FULLWriteAndReadCompare: write random values to the LBAs
+    2_PartialLBAWrite: write random values partially and validate all the values are same
+    3_WriteReadAging: write random value to LBAs repeatedly and validate the values are same all the time
+    
+Team Leader: 송주환
+Team Members: 김희준, 박혜녹, 윤다영, 정동혁, 한누리, 오지은
+"""
