@@ -1,26 +1,28 @@
 from enum import Enum
 from dataclasses import dataclass
 
+
 class Command(Enum):
-   WRITE = "write"
-   READ = "read"
-   FULLWRITE = "fullwrite"
-   FULLREAD = "fullread"
-   HELP = "help"
-   EXIT = "exit"
-   SCRIPT_1 = "1_"
-   SCRIPT_2 = "2_"
-   SCRIPT_3 = "3_"
-   INVALID = "invalid"
+    WRITE = "write"
+    READ = "read"
+    FULLWRITE = "fullwrite"
+    FULLREAD = "fullread"
+    HELP = "help"
+    EXIT = "exit"
+    SCRIPT_1 = "1_"
+    SCRIPT_2 = "2_"
+    SCRIPT_3 = "3_"
+    INVALID = "invalid"
+
 
 @dataclass
 class Config:
     pass
 
+
 class Shell:
     def __init__(self, config):
         self.config = config
-
 
     def execute_command(self, command, args):
         print("command executed")
@@ -44,7 +46,7 @@ class Shell:
     def read(self, lba: int):
         pass
 
-    def write(self, lba: int, value:str):
+    def write(self, lba: int, value: str):
         pass
 
     def write_error_to_output(self):
@@ -56,7 +58,7 @@ class Shell:
     def full_read(self):
         pass
 
-    def find_command(self, command_str:str):
+    def find_command(self, command_str: str):
         return 'c', 'a'
 
     def script_1(self):
@@ -67,7 +69,6 @@ class Shell:
 
     def script_3(self):
         pass
-
 
     def main_loop(self):
         while True:
