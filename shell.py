@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from consts.commands import Command
+from consts.commands import CommandEnum
 from consts.commands import VALUE_REQUIRE_COMMANDS
 from consts.help_msg import HELP_MSG
 
@@ -27,24 +27,24 @@ class Shell:
             cmd = self.find_command(cmd_str)
 
             if cmd in VALUE_REQUIRE_COMMANDS and len(args) == 0:
-                return Command.INVALID, []
+                return CommandEnum.INVALID, []
 
             return cmd, args
 
         except (KeyboardInterrupt, EOFError):
-            return Command.EXIT, []
+            return CommandEnum.EXIT, []
 
     @staticmethod
     def find_command(command_str: str):
         command_str = command_str.lower()
 
-        for cmd in Command:
+        for cmd in CommandEnum:
             if cmd.value == command_str:
                 return cmd
             elif cmd.value.startswith(command_str):
                 return cmd
 
-        return Command.INVALID
+        return CommandEnum.INVALID
 
     def read(self, lba: int):
         pass
@@ -72,7 +72,7 @@ class Shell:
 
     def execute_command(self, command: str, args: list):
         print(f"Entered command: {command}  with args: {args}")
-        if command == Command.HELP:
+        if command == CommandEnum.HELP:
             print(HELP_MSG)
 
     def main_loop(self):
@@ -82,7 +82,7 @@ class Shell:
             if command is None:
                 continue
 
-            if command == Command.EXIT: break
+            if command == CommandEnum.EXIT: break
 
             self.execute_command(command, args)
 

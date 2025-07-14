@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class Command(Enum):
+class CommandEnum(Enum):
     WRITE = "write"
     READ = "read"
     FULLWRITE = "fullwrite"
@@ -14,4 +14,4 @@ class Command(Enum):
     INVALID = "invalid"
 
 
-VALUE_REQUIRE_COMMANDS = [Command.WRITE, Command.FULLWRITE]
+VALUE_REQUIRE_COMMANDS = [CommandEnum.WRITE, CommandEnum.FULLWRITE]
