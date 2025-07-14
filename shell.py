@@ -1,30 +1,17 @@
 from dataclasses import dataclass
-from enum import Enum
 
-
-class Command(Enum):
-    WRITE = "write"
-    READ = "read"
-    FULLWRITE = "fullwrite"
-    FULLREAD = "fullread"
-    HELP = "help"
-    EXIT = "exit"
-    SCRIPT_1 = "1_"
-    SCRIPT_2 = "2_"
-    SCRIPT_3 = "3_"
-    INVALID = "invalid"
-
-
-VALUE_REQUIRE_COMMANDS = [Command.WRITE, Command.FULLWRITE]
+from consts.commands import CommandEnum
+from consts.commands import VALUE_REQUIRE_COMMANDS
+from consts.help_msg import HELP_MSG
 
 
 @dataclass
-class Config:
-    SSD_PY_PAHT = "ssd.py"
+class ShellConfig:
+    SSD_PY_PATH = "ssd.py"
 
 
 class Shell:
-    def __init__(self, config):
+    def __init__(self, config: ShellConfig):
         self.config = config
 
     def get_command(self):
@@ -40,24 +27,24 @@ class Shell:
             cmd = self.find_command(cmd_str)
 
             if cmd in VALUE_REQUIRE_COMMANDS and len(args) == 0:
-                return Command.INVALID, []
+                return CommandEnum.INVALID, []
 
             return cmd, args
 
         except (KeyboardInterrupt, EOFError):
-            return Command.EXIT, []
+            return CommandEnum.EXIT, []
 
     @staticmethod
     def find_command(command_str: str):
         command_str = command_str.lower()
 
-        for cmd in Command:
+        for cmd in CommandEnum:
             if cmd.value == command_str:
                 return cmd
             elif cmd.value.startswith(command_str):
                 return cmd
 
-        return Command.INVALID
+        return CommandEnum.INVALID
 
     def read(self, lba: int):
         pass
@@ -83,8 +70,10 @@ class Shell:
     def script_3(self):
         pass
 
-    def execute_command(self, command, args):
+    def execute_command(self, command: str, args: list):
         print(f"Entered command: {command}  with args: {args}")
+        if command == CommandEnum.HELP:
+            print(HELP_MSG)
 
     def main_loop(self):
         while True:
@@ -93,12 +82,12 @@ class Shell:
             if command is None:
                 continue
 
-            if command == Command.EXIT: break
+            if command == CommandEnum.EXIT: break
 
             self.execute_command(command, args)
 
 
 if __name__ == "__main__":
-    config = Config()
+    config = ShellConfig()
     shell = Shell(config)
     shell.main_loop()
