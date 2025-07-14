@@ -14,7 +14,7 @@ def test_write_check_file():
     loc = 11
     ssd.write(loc, "0x1298CDEF")
 
-    with open("ssd_nand.txt", "r") as f:
+    with open("ssd_output.txt", "r") as f:
         content = f.read()
     assert content == ""
 
@@ -23,7 +23,7 @@ def test_out_of_index_error():
     loc = 120
     ssd.write(loc, "0x1298CDEF")
 
-    with open("ssd_nand.txt", "r") as f:
+    with open("ssd_output.txt", "r") as f:
         content = f.read()
     assert content == "ERROR"
 
