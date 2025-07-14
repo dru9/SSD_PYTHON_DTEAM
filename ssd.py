@@ -7,7 +7,8 @@ OUT_FILE_PATH = "ssd_output.txt"
 class FileManager:
     def read_nand_txt(self, lba):
         pass
-
+    def write_nand_txt(self, lba, data):
+        pass
     def write_output_txt(self, contents: str):
         pass
 
