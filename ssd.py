@@ -1,4 +1,5 @@
 import os
+import sys
 
 FILE_PATH = "ssd_nand.txt"
 OUT_FILE_PATH = "ssd_output.txt"
@@ -61,3 +62,22 @@ class SSD:
         data_list[LBA] = data
         self.dict_to_file(data_list)
         self.write_output_file("")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print("At least two argument are required")
+        sys.exit(1)
+    if not sys.argv[2].isdigit():
+        print("The index should be an integer among 0 ~ 99")
+        sys.exit(1)
+
+    ssd = SSD()
+    mode = sys.argv[1]
+    LBA = int(sys.argv[2])
+    if mode == "W" and len(sys.argv) == 4:
+        ssd.write(LBA, sys.argv[3])
+    elif mode == "R" and len(sys.argv) == 3:
+        ssd.read(LBA)
+    else:
+        print("Invalid argument")
