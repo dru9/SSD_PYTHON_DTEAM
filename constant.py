@@ -39,3 +39,5 @@ test scripts:
 Team Leader: 송주환
 Team Members: 김희준, 박혜녹, 윤다영, 정동혁, 한누리, 오지은
 """
+
+MESSAGE_INVALID_SHELL_CMD = "Invalid shall command."
