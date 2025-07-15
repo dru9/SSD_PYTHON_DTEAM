@@ -63,11 +63,10 @@ class Shell:
         command = ReadCommand(self.config.SSD_PY_PATH, lba)
         subprocess_success = command.execute()
 
-        if subprocess_success:
-            result = self._read_output_file()
-            return result
-        else:
+        if not subprocess_success:
             return "ERROR"
+
+        return self._read_output_file()
 
     def read(self, lba: int) -> str:
         lba = int(lba)  # todo: safe convert
@@ -116,8 +115,23 @@ class Shell:
         print(f"Entered command: {command}  with args: {args}")
         if command == CommandEnum.HELP:
             print(HELP_MSG)
+            return None
         elif command == CommandEnum.READ:
             return self.read(*args)
+        elif command == CommandEnum.WRITE:
+            return self.write(*args)
+        elif command == CommandEnum.FULLREAD:
+            return self.full_read()
+        elif command == CommandEnum.FULLWRITE:
+            return self.full_write(*args)
+        elif command == CommandEnum.SCRIPT_1:
+            return self.script_1()
+        elif command == CommandEnum.SCRIPT_2:
+            return self.script_2()
+        elif command == CommandEnum.SCRIPT_3:
+            return self.script_3()
+        else:
+            raise NotImplementedError()
 
     def main_loop(self):
         while True:
