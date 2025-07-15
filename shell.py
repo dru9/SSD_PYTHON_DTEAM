@@ -56,7 +56,11 @@ class Shell:
         pass
 
     def full_write(self, value: str):
-        pass
+        for i in range(100):
+            ret = self.write(i, value)
+            if ret == "[Write] ERROR":
+                return f"[Full Write] ERROR in LBA[{i:02d}]"
+        return "[Full Write] Done"
 
     def full_read(self) -> str:
         header = "[Full Read]"
