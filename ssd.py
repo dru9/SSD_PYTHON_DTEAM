@@ -7,37 +7,6 @@ OUT_FILE_PATH = "ssd_output.txt"
 
 class FileManager:
     def _read_whole_contents_nand_txt(self):
-        pass
-    def read_nand_txt(self, lba):
-        pass
-
-    def write_nand_txt(self, lba, data):
-        pass
-
-    def write_output_txt(self, contents: str):
-        pass
-
-
-class SSD:
-    def __init__(self, file_manager):
-        if not os.path.exists(FILE_PATH):
-            with open(FILE_PATH, "w") as f:
-                for i in range(100):
-                    f.write(f"{i}\t0x00000000\n")
-        self.file_manager = file_manager
-
-    def read(self, LBA):
-        if LBA < 0 or LBA > 99:
-            self.write_output_file("ERROR")
-            return
-
-        data_list = self.file_to_dict()
-        if data_list == "":
-            self.write_output_file("ERROR")
-        self.dict_to_file(data_list)
-        self.write_output_file(data_list[LBA])
-
-    def file_to_dict(self):
         result = {}
         with open(FILE_PATH, "r") as f:
             for line in f:
@@ -51,14 +20,36 @@ class SSD:
                     result[key] = value
         return result
 
+    def read_nand_txt(self, lba):
+        data_list = self._read_whole_contents_nand_txt()
+        if lba < 0 or LBA > lba or data_list == "":
+            return "ERROR"
+        return data_list[lba]
+
+    def write_nand_txt(self, lba, data):
+        pass
+
+    def write_output_txt(self, contents: str):
+        with open(OUT_FILE_PATH, "w") as f:
+            f.write(contents)
+
+
+class SSD:
+    def __init__(self, file_manager):
+        if not os.path.exists(FILE_PATH):
+            with open(FILE_PATH, "w") as f:
+                for i in range(100):
+                    f.write(f"{i}\t0x00000000\n")
+        self.file_manager = file_manager
+
+    def read(self, LBA):
+        read_value = self.file_manager.read_nand_txt(LBA)
+        self.file_manager.write_output_txt(read_value)
+
     def dict_to_file(self, data):
         with open(FILE_PATH, "w") as f:
             for key, value in data.items():
                 f.write(f"{key}\t{value}\n")
-
-    def write_output_file(self, str):
-        with open(OUT_FILE_PATH, "w") as f:
-            f.write(str)
 
     def write(self, LBA, data):
         if LBA < 0 or LBA > 99:
@@ -82,7 +73,7 @@ if __name__ == "__main__":
         print("The index should be an integer among 0 ~ 99")
         sys.exit(1)
 
-    ssd = SSD()
+    ssd = SSD(FileManager())
     mode = sys.argv[1]
     LBA = int(sys.argv[2])
     if mode == "W" and len(sys.argv) == 4:
