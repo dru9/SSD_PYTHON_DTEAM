@@ -18,8 +18,11 @@ FILENAME = "ssd_nand.txt"
 FILENAME_OUT = "ssd_output.txt"
 FILENAME_MAIN_SSD = "ssd.py"
 
-
-HELP_MSG = """
+MESSAGE_DONE = "DONE"
+MESSAGE_ERROR = "ERROR"
+MESSAGE_FAIL = "FAIL"
+MESSAGE_PASS = "PASS"
+MESSAGE_HELP = """
 usage: <command> [<args>]
 
 read: read a value from the given LBA

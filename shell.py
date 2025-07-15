@@ -2,13 +2,61 @@ from typing import Optional
 
 import utils
 from commands import ReadShellCommand, WriteShellCommand
-from constant import (FILENAME_MAIN_SSD, FILENAME_OUT, HELP_MSG, ShellCommandEnum)
+from constant import (
+    FILENAME_MAIN_SSD,
+    FILENAME_OUT,
+    MESSAGE_DONE,
+    MESSAGE_ERROR,
+    MESSAGE_FAIL,
+    MESSAGE_HELP,
+    MESSAGE_PASS,
+    ShellCommandEnum
+)
 
 TWO_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.WRITE]
 ONE_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.READ, ShellCommandEnum.FULLWRITE]
 
 
+class SSDReaderWriter:
+
+    @classmethod
+    def read(cls, lba: int) -> str:
+        cmd = ReadShellCommand(FILENAME_MAIN_SSD, lba)
+        is_ssd_run = cmd.execute()
+        if not is_ssd_run:
+            return MESSAGE_ERROR
+
+        return cls._cache_inout()
+
+    @classmethod
+    def write(cls, lba: int, value: str) -> str:
+        cmd = WriteShellCommand(FILENAME_MAIN_SSD, lba, value)
+        is_ssd_run = cmd.execute()
+        if not is_ssd_run:
+            return MESSAGE_ERROR
+
+        res = cls._cache_inout()
+        if res == "":
+            return MESSAGE_DONE
+
+        return MESSAGE_ERROR
+
+    @classmethod
+    def _cache_inout(cls) -> str:
+        try:
+            with open(FILENAME_OUT, "r") as f:
+                content = f.read().strip()
+                return content
+
+        except FileNotFoundError:
+            return MESSAGE_ERROR
+
+        except Exception:
+            return MESSAGE_ERROR
+
+
 class Shell:
+    reader_writer = SSDReaderWriter
 
     @classmethod
     def get_command(cls):
@@ -45,58 +93,26 @@ class Shell:
         return ShellCommandEnum.INVALID
 
     @classmethod
-    def _read_output_file(cls) -> str:
-        try:
-            with open(FILENAME_OUT, "r") as f:
-                content = f.read().strip()
-                return content
-        except FileNotFoundError:
-            return "ERROR"
-        except Exception:
-            return "ERROR"
-
-    @classmethod
-    def _read_value(cls, lba: int) -> str:
-        command = ReadShellCommand(FILENAME_MAIN_SSD, lba)
-        subprocess_success = command.execute()
-        if not subprocess_success:
-            return "ERROR"
-
-        return cls._read_output_file()
-
-    @classmethod
     def read(cls, lba: int) -> str:
         lba = int(lba)  # todo: safe convert
-        result = cls._read_value(lba)
-        if result == "ERROR":
+        ret = cls.reader_writer.read(lba)
+        if ret == MESSAGE_ERROR:
             return "[Read] ERROR"
-        else:
-            return f"[Read] LBA {lba:02d} : {result}"
-
-    @classmethod
-    def _write_value(cls, lba: int, value: str) -> bool:
-        command = WriteShellCommand(FILENAME_MAIN_SSD, lba, value)
-        subprocess_success = command.execute()
-        if not subprocess_success:
-            return False
-
-        result = cls._read_output_file()
-        if result == "":
-            return True
-        else:
-            return False
+        return f"[Read] LBA {lba:02d} : {ret}"
 
     @classmethod
     def write(cls, lba: int, value: str) -> str:
-        success = cls._write_value(lba, value)
-        return "[Write] Done" if success else "[Write] ERROR"
+        ret = cls.reader_writer.write(lba, value)
+        if ret == MESSAGE_ERROR:
+            return "[Write] ERROR"
+        return "[Write] Done"
 
     @classmethod
     def full_write(cls, value: str):
-        for i in range(100):
-            ret = cls.write(i, value)
-            if ret == "[Write] ERROR":
-                return f"[Full Write] ERROR in LBA[{i:02d}]"
+        for lba in range(100):
+            ret = cls.reader_writer.write(lba, value)
+            if ret == MESSAGE_ERROR:
+                return f"[Full Write] ERROR in LBA[{lba:02d}]"
         return "[Full Write] Done"
 
     @classmethod
@@ -104,7 +120,7 @@ class Shell:
         header = "[Full Read]"
         results = [header]
         results += [
-            f"LBA {i:0>2} : {cls._read_value(lba=i)}"
+            f"LBA {i:0>2} : {cls.reader_writer.read(lba=i)}"
             for i in range(num_iter)
         ]
         return "\n".join(results)
@@ -115,12 +131,12 @@ class Shell:
             start_idx = n * 5
             value = utils.get_random_value()
             for i in range(5):
-                if not cls._write_value(lba=start_idx + i, value=value):
-                    return "FAIL"
+                if not cls.reader_writer.write(lba=start_idx + i, value=value):
+                    return MESSAGE_FAIL
             for i in range(5):
-                if value != cls._read_value(lba=start_idx + i):
-                    return "FAIL"
-        return "PASS"
+                if value != cls.reader_writer.read(lba=start_idx + i):
+                    return MESSAGE_FAIL
+        return MESSAGE_PASS
 
     @classmethod
     def script_2(cls, num_iter: int = 30) -> str:
@@ -128,35 +144,35 @@ class Shell:
         for _ in range(num_iter):
             value = utils.get_random_value()
             for lba in lba_values:
-                success = cls._write_value(lba, value)
+                success = cls.reader_writer.write(lba, value)
                 if not success:
-                    return "FAIL"
+                    return MESSAGE_FAIL
 
             for lba in lba_values:
-                current_value = cls._read_value(lba)
-                if current_value == "ERROR":
-                    return "FAIL"
+                current_value = cls.reader_writer.read(lba)
+                if current_value == MESSAGE_ERROR:
+                    return MESSAGE_FAIL
                 if current_value != value:
-                    return "FAIL"
+                    return MESSAGE_FAIL
 
-        return "PASS"
+        return MESSAGE_PASS
 
     @classmethod
     def script_3(cls, num_iter: int = 200) -> str:
         lba_1, lba_2 = (0, 99)
         for _ in range(num_iter):
             value = utils.get_random_value()
-            cls._write_value(lba=lba_1, value=value)
-            cls._write_value(lba=lba_2, value=value)
-            if cls._read_value(lba_1) != cls._read_value(lba_2):
-                return "FAIL"
-        return "PASS"
+            cls.reader_writer.write(lba=lba_1, value=value)
+            cls.reader_writer.write(lba=lba_2, value=value)
+            if cls.reader_writer.read(lba_1) != cls.reader_writer.read(lba_2):
+                return MESSAGE_FAIL
+        return MESSAGE_PASS
 
     @classmethod
     def execute_command(cls, cmd: str, args: list) -> Optional[str]:
         print(f"Entered command: {cmd}  with args: {args}")
         if cmd == ShellCommandEnum.HELP:
-            print(HELP_MSG)
+            print(MESSAGE_HELP)
             return None
         elif cmd == ShellCommandEnum.READ:
             return cls.read(*args)
