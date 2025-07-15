@@ -1,6 +1,5 @@
 import subprocess
-from abc import ABC
-from abc import abstractmethod
+from abc import ABC, abstractmethod
 from typing import List
 
 
@@ -17,7 +16,7 @@ class ProcessExecutor:
             return False
 
 
-class Command(ABC):
+class ShellCommand(ABC):
     def __init__(self, ssd_path: str):
         self.ssd_path = ssd_path
         self.executor = ProcessExecutor()
@@ -27,7 +26,7 @@ class Command(ABC):
         pass
 
 
-class ReadCommand(Command):
+class ReadShellCommand(ShellCommand):
     def __init__(self, ssd_path: str, lba: int):
         super().__init__(ssd_path)
         self.lba = lba
@@ -36,7 +35,7 @@ class ReadCommand(Command):
         return self.executor.run('python', [self.ssd_path, 'R', str(self.lba)])
 
 
-class WriteCommand(Command):
+class WriteShellCommand(ShellCommand):
     def __init__(self, ssd_path: str, lba: int, value: str):
         super().__init__(ssd_path)
         self.lba = lba
