@@ -97,10 +97,21 @@ class Shell:
         pass
 
     def full_write(self, value: str):
-        pass
+        for i in range(100):
+            ret = self.write(i, value)
+            if ret == "[Write] ERROR":
+                return f"[Full Write] ERROR in LBA[{i:02d}]"
+        return "[Full Write] Done"
 
-    def full_read(self):
-        pass
+    def full_read(self) -> str:
+        header = "[Full Read]"
+        num_iter: int = 100
+        results = [header]
+        results += [
+            f"LBA {i:0>2} : {self.read(lba=i)}"
+            for i in range(num_iter)
+        ]
+        return "\n".join(results)
 
     def script_1(self):
         pass
