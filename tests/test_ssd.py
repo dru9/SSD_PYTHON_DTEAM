@@ -2,6 +2,8 @@ import re
 import pytest
 from pytest_mock import MockerFixture
 from ssd import SSD, FileManager
+from unittest.mock import mock_open, patch, call
+from constant import FILENAME, FILENAME_OUT
 
 
 @pytest.fixture
@@ -58,3 +60,97 @@ def test_write_check_file(ssd):
 
     ssd.file_manager.write_nand_txt.assert_called()
 
+def test_execute_command_When_args_is_invalid_Should_write_error():
+    with patch('builtins.open', mock_open()) as mocked_open:
+        args = [None, "W"]
+        ssd = SSD(FileManager())
+        ssd.execute_command(args)
+        mocked_open.assert_called_once_with(FILENAME_OUT, 'w')
+        mocked_open().write.assert_called_once_with('ERROR')
+
+    mocked_open = mock_open()
+    with patch('builtins.open', mocked_open):
+        args = [None]
+        ssd = SSD(FileManager())
+        ssd.execute_command(args)
+        mocked_open.assert_called_once_with(FILENAME_OUT, 'w')
+        mocked_open().write.assert_called_once_with('ERROR')
+
+
+def test_execute_command_When_write_normal_Should_write_value():
+    initial_file_data = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n'
+    m = mock_open(read_data=initial_file_data)
+
+    with patch('builtins.open', m):
+        args = [None, "W", "1", "0xAAAAAAAA"]
+        ssd = SSD(FileManager())
+        ssd.execute_command(args)
+
+        m.assert_has_calls([call(FILENAME, 'r')], any_order=False)
+        m.assert_has_calls([call(FILENAME, 'w')], any_order=False)
+        m.assert_has_calls([call(FILENAME_OUT, 'w')], any_order=False)
+
+        m().write.assert_any_call("")
+
+
+def test_execute_command_When_read_out_of_range_Should_write_error():
+    mocked_open = mock_open()
+
+    with patch('builtins.open', mocked_open):
+        args = [None, "R", "100"]
+        ssd = SSD(FileManager())
+        ssd.execute_command(args)
+        mocked_open.assert_called_once_with(FILENAME_OUT, 'w')
+        mocked_open().write.assert_called_once_with('ERROR')
+
+    mocked_open = mock_open()
+
+    with patch('builtins.open', mocked_open):
+        args = [None, "R", "-1"]
+        ssd = SSD(FileManager())
+        ssd.execute_command(args)
+        mocked_open.assert_called_once_with(FILENAME_OUT, 'w')
+        mocked_open().write.assert_called_once_with('ERROR')
+
+def test_execute_command_When_write_invalid_value_Should_write_error():
+    mocked_open = mock_open()
+    with patch('builtins.open', mocked_open):
+        args = [None, "W", "100", "0x00000000"]
+        ssd = SSD(FileManager())
+        ssd.execute_command(args)
+        mocked_open.assert_called_once_with(FILENAME_OUT, 'w')
+        mocked_open().write.assert_called_once_with('ERROR')
+
+    mocked_open = mock_open()
+    with patch('builtins.open', mocked_open):
+        args = [None, "W", "0", "0xAAAAAAAQ"]
+        ssd = SSD(FileManager())
+        ssd.execute_command(args)
+        mocked_open.assert_called_once_with(FILENAME_OUT, 'w')
+        mocked_open().write.assert_called_once_with('ERROR')
+
+    mocked_open = mock_open()
+    with patch('builtins.open', mocked_open):
+        args = [None, "W", "0", "12AAAAAAAQ"]
+        ssd = SSD(FileManager())
+        ssd.execute_command(args)
+        mocked_open.assert_called_once_with(FILENAME_OUT, 'w')
+        mocked_open().write.assert_called_once_with('ERROR')
+
+    mocked_open = mock_open()
+    with patch('builtins.open', mocked_open):
+        args = [None, "W", "0", "0x12345678910"]
+        ssd = SSD(FileManager())
+        ssd.execute_command(args)
+        mocked_open.assert_called_once_with(FILENAME_OUT, 'w')
+        mocked_open().write.assert_called_once_with('ERROR')
+
+
+def test_execute_command_When_command_invalid_Should_write_error():
+    mocked_open = mock_open()
+    with patch('builtins.open', mocked_open):
+        args = [None, "A", "0"]
+        ssd = SSD(FileManager())
+        ssd.execute_command(args)
+        mocked_open.assert_called_once_with(FILENAME_OUT, 'w')
+        mocked_open().write.assert_called_once_with('ERROR')
