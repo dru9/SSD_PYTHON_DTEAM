@@ -53,7 +53,7 @@ class Shell:
         try:
             with open(self.config.OUTPUT_FILE_PATH, 'r') as f:
                 content = f.read().strip()
-                return content if content else "ERROR"
+                return content
         except FileNotFoundError:
             return "ERROR"
         except Exception:
@@ -61,9 +61,9 @@ class Shell:
 
     def _read_core(self, lba: int) -> str:
         command = ReadCommand(self.config.SSD_PY_PATH, lba)
-        success = command.execute()
+        subprocess_success = command.execute()
 
-        if success:
+        if subprocess_success:
             result = self._read_output_file()
             return result
         else:
@@ -77,14 +77,22 @@ class Shell:
         else:
             return f"[Read] LBA {lba:02d} : {result}"
 
-    def write(self, lba: int, value: str) -> str:
+    def _write_core(self, lba: int, value: str) -> bool:
         command = WriteCommand(self.config.SSD_PY_PATH, lba, value)
-        success = command.execute()
+        subprocess_success = command.execute()
 
-        if success:
-            return "[Write] Done"
+        if not subprocess_success:
+            return False
+
+        result = self._read_output_file()
+        if result == "":
+            return True
         else:
-            return "[Write] ERROR"
+            return False
+
+    def write(self, lba: int, value: str) -> str:
+        success = self._write_core(lba, value)
+        return "[Write] Done" if success else "[Write] ERROR"
 
     def write_error_to_output(self):
         pass
