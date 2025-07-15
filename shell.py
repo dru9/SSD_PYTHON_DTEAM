@@ -1,3 +1,4 @@
+import random
 from dataclasses import dataclass
 
 from commands import ReadCommand, WriteCommand
@@ -111,8 +112,17 @@ class Shell:
         ]
         return "\n".join(results)
 
-    def script_1(self):
-        pass
+    def script_1(self) -> str:
+        for num_iter in range(20):
+            start_idx = num_iter * 5
+            value = str(random.randint(0, 99_999_999)).zfill(8)
+            for i in range(5):
+                if not self._write_core(lba=start_idx + i, value=value):
+                    return "FAIL"
+            for i in range(5):
+                if value != self._read_core(lba=start_idx + i):
+                    return "FAIL"
+        return "PASS"
 
     def script_2(self):
         pass
