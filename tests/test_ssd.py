@@ -1,9 +1,9 @@
-import re
-import pytest
-from pytest_mock import MockerFixture
-from ssd import SSD, FileManager
 from unittest.mock import mock_open, patch, call
+
+import pytest
+
 from constant import FILENAME, FILENAME_OUT
+from ssd import SSD, FileManager
 
 
 @pytest.fixture
@@ -39,6 +39,7 @@ def test_read_ssd_nand_txt_file_called_by_write(ssd):
 
     ssd.file_manager.write_nand_txt.assert_called()
 
+
 def test_read_method_record_ssd_output_txt(ssd):
     lba = 0
     ssd.read(lba)
@@ -59,6 +60,7 @@ def test_write_check_file(ssd):
     ssd.write(lba, "0x1298CDEF")
 
     ssd.file_manager.write_nand_txt.assert_called()
+
 
 def test_execute_command_When_args_is_invalid_Should_write_error():
     with patch('builtins.open', mock_open()) as mocked_open:
@@ -112,6 +114,7 @@ def test_execute_command_When_read_out_of_range_Should_write_error():
         mocked_open.assert_called_once_with(FILENAME_OUT, 'w')
         mocked_open().write.assert_called_once_with('ERROR')
 
+
 def test_execute_command_When_write_invalid_value_Should_write_error():
     mocked_open = mock_open()
     with patch('builtins.open', mocked_open):
@@ -154,3 +157,33 @@ def test_execute_command_When_command_invalid_Should_write_error():
         ssd.execute_command(args)
         mocked_open.assert_called_once_with(FILENAME_OUT, 'w')
         mocked_open().write.assert_called_once_with('ERROR')
+
+
+@patch('builtins.open', new_callable=mock_open)
+def test_filemanager_nand_write(mock_file):
+    lba = 11
+    return_value = {lba: "0x00000000"}
+    with patch.object(FileManager, '_read_whole_contents_nand_txt', return_value=return_value):
+        file_manager = FileManager()
+        contents = "0x12341234"
+        file_manager.write_nand_txt(lba, contents)
+        mock_file.assert_called_with('ssd_nand.txt', 'w')
+
+
+@patch('builtins.open', new_callable=mock_open)
+def test_filemanager_nand_write_fail(mock_file):
+    lba = 11
+    return_value = {lba: ""}
+    with patch.object(FileManager, '_read_whole_contents_nand_txt', return_value=return_value):
+        file_manager = FileManager()
+        contents = "0x12341234"
+        result = file_manager.write_nand_txt(lba, contents)
+        assert result == False
+
+
+@patch('builtins.open', new_callable=mock_open)
+def test_filemanager_write_file(mock_file):
+    lba = 11
+    file_manager = FileManager()
+    result = file_manager.write_output_txt("ERROR")
+    mock_file.assert_called_with('ssd_output.txt', 'w')
