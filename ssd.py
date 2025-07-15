@@ -79,20 +79,35 @@ class SSD:
         self.write_output_file("")
 
 
+def check_hex(data):
+    if len(data) < 10:
+        return False
+    if not data[:2] == "0x":
+        return False
+    try:
+        int(data[2:], 16)
+        return True
+    except ValueError:
+        return False
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
+    args = sys.argv
+    argument_len = len(args)
+    if argument_len < 3:
         print("At least two argument are required")
         sys.exit(1)
-    if not sys.argv[2].isdigit() or (int(sys.argv[2]) < 0) or (int(sys.argv[2]) > 99):
+    if not args[2].isdigit() or (int(args[2]) < 0) or (int(args[2]) > 99):
         print("The index should be an integer among 0 ~ 99")
         sys.exit(1)
 
+    mode = args[1]
+    LBA = int(args[2])
     ssd = SSD(FileManager())
-    mode = sys.argv[1]
-    LBA = int(sys.argv[2])
-    if mode == "W" and len(sys.argv) == 4:
+
+    if mode == "W" and check_hex(args[3]) and argument_len == 4:
         ssd.write(LBA, sys.argv[3])
-    elif mode == "R" and len(sys.argv) == 3:
+    elif mode == "R" and argument_len == 3:
         ssd.read(LBA)
     else:
         print("Invalid argument")
