@@ -1,14 +1,15 @@
 import os
 import sys
 
-FILE_PATH = "ssd_nand.txt"
-OUT_FILE_PATH = "ssd_output.txt"
+from constant import FILENAME, FILENAME_OUT
+
 
 
 class FileManager:
     def _read_whole_contents_nand_txt(self) -> dict[int, str]:
+
         result = {}
-        with open(FILE_PATH, "r") as f:
+        with open(FILENAME, "r") as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -70,11 +71,25 @@ class SSD:
         self.file_manager.write_output_txt("")
 
 
+def check_hex(data):
+    if len(data) != 10:
+        return False
+    if not data[:2] == "0x":
+        return False
+    try:
+        int(data[2:], 16)
+        return True
+    except ValueError:
+        return False
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
+    args = sys.argv
+    argument_len = len(args)
+    if argument_len < 3:
         print("At least two argument are required")
         sys.exit(1)
-    if not sys.argv[2].isdigit() or (int(sys.argv[2]) < 0) or (int(sys.argv[2]) > 99):
+    if not args[2].isdigit() or (int(args[2]) < 0) or (int(args[2]) > 99):
         print("The index should be an integer among 0 ~ 99")
         sys.exit(1)
 
@@ -82,8 +97,9 @@ if __name__ == "__main__":
     mode = sys.argv[1]
     LBA = int(sys.argv[2])
     if mode == "W" and len(sys.argv) == 4:
+
         ssd.write(LBA, sys.argv[3])
-    elif mode == "R" and len(sys.argv) == 3:
+    elif mode == "R" and argument_len == 3:
         ssd.read(LBA)
     else:
         print("Invalid argument")

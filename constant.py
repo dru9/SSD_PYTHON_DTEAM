@@ -1,4 +1,24 @@
-HELP_MSG = """usage: <command> [<args>]
+from enum import Enum
+
+
+class CommandEnum(Enum):
+    WRITE = "write"
+    READ = "read"
+    FULLWRITE = "fullwrite"
+    FULLREAD = "fullread"
+    HELP = "help"
+    EXIT = "exit"
+    SCRIPT_1 = "1_"
+    SCRIPT_2 = "2_"
+    SCRIPT_3 = "3_"
+    INVALID = "invalid"
+
+
+FILENAME = "ssd_nand.txt"
+FILENAME_OUT = "ssd_output.txt"
+
+HELP_MSG = """
+usage: <command> [<args>]
 
 read: read a value from the given LBA
 write: write a given value to the given LBA
@@ -10,7 +30,7 @@ test scripts:
     1_FULLWriteAndReadCompare: write random values to the LBAs
     2_PartialLBAWrite: write random values partially and validate all the values are same
     3_WriteReadAging: write random value to LBAs repeatedly and validate the values are same all the time
-    
+
 Team Leader: 송주환
 Team Members: 김희준, 박혜녹, 윤다영, 정동혁, 한누리, 오지은
 """
