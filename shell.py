@@ -1,3 +1,4 @@
+import random
 from dataclasses import dataclass
 
 from commands import ReadCommand, WriteCommand
@@ -115,7 +116,26 @@ class Shell:
         pass
 
     def script_2(self):
-        pass
+        REPEAT_TIMES = 30
+        LBAS = [4, 0, 3, 1, 2]
+        RAND_LOWER_BOUND = 0
+        RAND_UPPER_BOUND = 0xFFFFFFFF
+        for iteration in range(REPEAT_TIMES):
+            writing_random_value = f"0x{random.randint(RAND_LOWER_BOUND, RAND_UPPER_BOUND):08X}"
+
+            for lba in LBAS:
+                success = self._write_core(lba, writing_random_value)
+                if not success:
+                    return f"FAIL - Write error at {lba} in iter: {iteration + 1}"
+
+            for lba in LBAS:
+                current_value = self._read_core(lba)
+                if current_value == "ERROR":
+                    return f"FAIL - Read error at {lba} in iter: {iteration + 1}"
+                if current_value != writing_random_value:
+                    return f"FAIL - Value mismatch at {lba} in iter: {iteration + 1}"
+
+        return "PASS"
 
     def script_3(self):
         pass
