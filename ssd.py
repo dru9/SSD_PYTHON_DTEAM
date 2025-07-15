@@ -80,7 +80,7 @@ class SSD:
 
 
 def check_hex(data):
-    if len(data) < 10:
+    if len(data) != 10:
         return False
     if not data[:2] == "0x":
         return False
