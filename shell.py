@@ -1,9 +1,7 @@
 from dataclasses import dataclass
 
-from commands import ReadCommand
-from commands import WriteCommand
-from consts.commands import CommandEnum
-from consts.commands import VALUE_REQUIRE_COMMANDS
+from commands import ReadCommand, WriteCommand
+from consts.commands import CommandEnum, VALUE_REQUIRE_COMMANDS
 from consts.help_msg import HELP_MSG
 
 
@@ -53,7 +51,7 @@ class Shell:
         try:
             with open(self.config.OUTPUT_FILE_PATH, 'r') as f:
                 content = f.read().strip()
-                return content if content else "ERROR"
+                return content
         except FileNotFoundError:
             return "ERROR"
         except Exception:
@@ -61,13 +59,12 @@ class Shell:
 
     def _read_core(self, lba: int) -> str:
         command = ReadCommand(self.config.SSD_PY_PATH, lba)
-        success = command.execute()
+        subprocess_success = command.execute()
 
-        if success:
-            result = self._read_output_file()
-            return result
-        else:
+        if not subprocess_success:
             return "ERROR"
+
+        return self._read_output_file()
 
     def read(self, lba: int) -> str:
         lba = int(lba)  # todo: safe convert
@@ -77,14 +74,22 @@ class Shell:
         else:
             return f"[Read] LBA {lba:02d} : {result}"
 
-    def write(self, lba: int, value: str) -> str:
+    def _write_core(self, lba: int, value: str) -> bool:
         command = WriteCommand(self.config.SSD_PY_PATH, lba, value)
-        success = command.execute()
+        subprocess_success = command.execute()
 
-        if success:
-            return "[Write] Done"
+        if not subprocess_success:
+            return False
+
+        result = self._read_output_file()
+        if result == "":
+            return True
         else:
-            return "[Write] ERROR"
+            return False
+
+    def write(self, lba: int, value: str) -> str:
+        success = self._write_core(lba, value)
+        return "[Write] Done" if success else "[Write] ERROR"
 
     def write_error_to_output(self):
         pass
@@ -119,8 +124,23 @@ class Shell:
         print(f"Entered command: {command}  with args: {args}")
         if command == CommandEnum.HELP:
             print(HELP_MSG)
+            return None
         elif command == CommandEnum.READ:
             return self.read(*args)
+        elif command == CommandEnum.WRITE:
+            return self.write(*args)
+        elif command == CommandEnum.FULLREAD:
+            return self.full_read()
+        elif command == CommandEnum.FULLWRITE:
+            return self.full_write(*args)
+        elif command == CommandEnum.SCRIPT_1:
+            return self.script_1()
+        elif command == CommandEnum.SCRIPT_2:
+            return self.script_2()
+        elif command == CommandEnum.SCRIPT_3:
+            return self.script_3()
+        else:
+            raise NotImplementedError()
 
     def main_loop(self):
         while True:

@@ -10,7 +10,7 @@ class ProcessExecutor:
         try:
             result = subprocess.run(
                 [executable] + args,
-                capture_output=True, text=True
+                text=True
             )
             return result.returncode == 0
         except Exception:
