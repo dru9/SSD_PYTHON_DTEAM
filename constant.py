@@ -8,14 +8,19 @@ class CommandEnum(Enum):
     FULLREAD = "fullread"
     HELP = "help"
     EXIT = "exit"
-    SCRIPT_1 = "1_"
-    SCRIPT_2 = "2_"
-    SCRIPT_3 = "3_"
+    SCRIPT_1 = "1_FullWriteAndReadCompare"
+    SCRIPT_2 = "2_PartialLBAWrite"
+    SCRIPT_3 = "3_WriteReadAging"
+    SCRIPT_1_SHORT = "1_"
+    SCRIPT_2_SHORT = "2_"
+    SCRIPT_3_SHORT = "3_"
     INVALID = "invalid"
 
 
 FILENAME = "ssd_nand.txt"
 FILENAME_OUT = "ssd_output.txt"
+FILENAME_MAIN_SSD = "ssd.py"
+
 
 HELP_MSG = """
 usage: <command> [<args>]
