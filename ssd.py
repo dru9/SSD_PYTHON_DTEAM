@@ -6,17 +6,41 @@ from constant import FILENAME, FILENAME_OUT
 
 
 class FileManager:
-    def _read_whole_contents_nand_txt(self):
-        pass
+    def _read_whole_contents_nand_txt(self) -> dict[int, str]:
+
+        result = {}
+        with open(FILENAME, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue  # 빈 줄 무시
+                parts = line.split("\t")
+                if len(parts) != 2:
+                    continue
+                result[int(parts[0])] = parts[1]
+        return result
+
+    def _save_to_nand_file(self, data) -> None:
+        with open(FILENAME, "w") as f:
+            for key, value in data.items():
+                f.write(f"{key}\t{value}\n")
 
     def read_nand_txt(self, lba):
-        pass
+        data_list = self._read_whole_contents_nand_txt()
+        return data_list.get(lba, "")
 
-    def write_nand_txt(self, lba, data):
-        pass
+    def write_nand_txt(self, lba, change_data) -> bool:
+        nand_datas = self._read_whole_contents_nand_txt()
+        current_data = nand_datas.get(lba, "")
+        if current_data == "":
+            return False
+        nand_datas[lba] = change_data
+        self._save_to_nand_file(nand_datas)
+        return True
 
     def write_output_txt(self, contents: str):
-        pass
+        with open(FILENAME_OUT, "w") as f:
+            f.write(contents)
 
 
 class SSD:
@@ -25,58 +49,26 @@ class SSD:
             with open(FILENAME, "w") as f:
                 for i in range(100):
                     f.write(f"{i}\t0x00000000\n")
-
-        self.contents = ""
-        with open(FILENAME, "r") as f:
-            self.contents += f.readline()
         self.file_manager = file_manager
 
     def read(self, LBA):
         if LBA < 0 or LBA > 99:
-            self.write_output_file("ERROR")
+            self.file_manager.write_output_file("ERROR")
+            return
+        read_value = self.file_manager.read_nand_txt(LBA)
+        if read_value == "":
+            self.file_manager.write_output_txt("ERROR")
+        else:
+            self.file_manager.write_output_txt(read_value)
+
+    def write(self, lba, data):
+        if lba < 0 or lba > 99:
+            self.file_manager.write_output_txt("ERROR")
             return
 
-        data_list = self.file_to_dict()
-        if data_list == "":
-            self.write_output_file("ERROR")
-        self.dict_to_file(data_list)
-        self.write_output_file(data_list[LBA])
-
-    def file_to_dict(self):
-        result = {}
-        with open(FILENAME, "r") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue  # 빈 줄 무시
-                parts = line.split("\t")
-                if len(parts) >= 2:
-                    key = int(parts[0])
-                    value = parts[1]
-                    result[key] = value
-        return result
-
-    def dict_to_file(self, data):
-        with open(FILENAME, "w") as f:
-            for key, value in data.items():
-                f.write(f"{key}\t{value}\n")
-
-    def write_output_file(self, str):
-        with open(FILENAME_OUT, "w") as f:
-            f.write(str)
-
-    def write(self, LBA, data):
-        if LBA < 0 or LBA > 99:
-            self.write_output_file("ERROR")
-            return
-
-        data_list = self.file_to_dict()
-        data_list.get(LBA, "")
-        if data_list == "":
-            self.write_output_file("ERROR")
-        data_list[LBA] = data
-        self.dict_to_file(data_list)
-        self.write_output_file("")
+        if not self.file_manager.write_nand_txt(lba, data):
+            self.file_manager.write_output_txt("ERROR")
+        self.file_manager.write_output_txt("")
 
 
 def check_hex(data):
@@ -101,11 +93,11 @@ if __name__ == "__main__":
         print("The index should be an integer among 0 ~ 99")
         sys.exit(1)
 
-    mode = args[1]
-    LBA = int(args[2])
     ssd = SSD(FileManager())
+    mode = sys.argv[1]
+    LBA = int(sys.argv[2])
+    if mode == "W" and len(sys.argv) == 4:
 
-    if mode == "W" and check_hex(args[3]) and argument_len == 4:
         ssd.write(LBA, sys.argv[3])
     elif mode == "R" and argument_len == 3:
         ssd.read(LBA)

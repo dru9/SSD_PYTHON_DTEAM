@@ -3,14 +3,14 @@ from typing import Optional
 import utils
 from commands import ReadCommand, WriteCommand
 from constant import (
-    CommandEnum,
-    FILENAME_OUT,
+    ShellCommandEnum,
     FILENAME_MAIN_SSD,
+    FILENAME_OUT,
     HELP_MSG
 )
 
-
-VALUE_REQUIRE_COMMANDS = [CommandEnum.WRITE, CommandEnum.FULLWRITE]
+TWO_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.WRITE]
+ONE_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.READ, ShellCommandEnum.FULLWRITE]
 
 
 class Shell:
@@ -27,25 +27,27 @@ class Shell:
             args = parts[1:]
             cmd = cls.find_command(cmd_str)
 
-            if cmd in VALUE_REQUIRE_COMMANDS and len(args) == 0:
-                return CommandEnum.INVALID, []
+            if cmd in TWO_ARGS_REQUIRE_COMMANDS and len(args) != 2:
+                return ShellCommandEnum.INVALID, []
+
+            if cmd in ONE_ARGS_REQUIRE_COMMANDS and len(args) != 1:
+                return ShellCommandEnum.INVALID, []
 
             return cmd, args
 
         except (KeyboardInterrupt, EOFError):
-            return CommandEnum.EXIT, []
+            return ShellCommandEnum.EXIT, []
 
     @classmethod
     def find_command(cls, command_str: str):
         command_str = command_str.lower()
-
-        for cmd in CommandEnum:
+        for cmd in ShellCommandEnum:
             if cmd.value == command_str:
                 return cmd
-            elif cmd.value.startswith(command_str):
+            elif cmd.value.lower().startswith(command_str):
                 return cmd
 
-        return CommandEnum.INVALID
+        return ShellCommandEnum.INVALID
 
     @classmethod
     def _read_output_file(cls) -> str:
@@ -62,7 +64,6 @@ class Shell:
     def _read_value(cls, lba: int) -> str:
         command = ReadCommand(FILENAME_MAIN_SSD, lba)
         subprocess_success = command.execute()
-
         if not subprocess_success:
             return "ERROR"
 
@@ -159,22 +160,22 @@ class Shell:
     @classmethod
     def execute_command(cls, cmd: str, args: list) -> Optional[str]:
         print(f"Entered command: {cmd}  with args: {args}")
-        if cmd == CommandEnum.HELP:
+        if cmd == ShellCommandEnum.HELP:
             print(HELP_MSG)
             return None
-        elif cmd == CommandEnum.READ:
+        elif cmd == ShellCommandEnum.READ:
             return cls.read(*args)
-        elif cmd == CommandEnum.WRITE:
+        elif cmd == ShellCommandEnum.WRITE:
             return cls.write(*args)
-        elif cmd == CommandEnum.FULLREAD:
+        elif cmd == ShellCommandEnum.FULLREAD:
             return cls.full_read()
-        elif cmd == CommandEnum.FULLWRITE:
+        elif cmd == ShellCommandEnum.FULLWRITE:
             return cls.full_write(*args)
-        elif cmd == CommandEnum.SCRIPT_1 or cmd == CommandEnum.SCRIPT_1_SHORT:
+        elif cmd == ShellCommandEnum.SCRIPT_1:
             return cls.script_1()
-        elif cmd == CommandEnum.SCRIPT_2 or cmd == CommandEnum.SCRIPT_2_SHORT:
+        elif cmd == ShellCommandEnum.SCRIPT_2:
             return cls.script_2()
-        elif cmd == CommandEnum.SCRIPT_3 or cmd == CommandEnum.SCRIPT_3_SHORT:
+        elif cmd == ShellCommandEnum.SCRIPT_3:
             return cls.script_3()
         else:
             raise NotImplementedError(f"Not implemented function for '{cmd}'")
@@ -183,7 +184,7 @@ class Shell:
     def run(cls) -> None:
         while True:
             cmd, args = cls.get_command()
-            if cmd == CommandEnum.EXIT:
+            if cmd == ShellCommandEnum.EXIT:
                 break
             if cmd is None:
                 continue
