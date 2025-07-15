@@ -1,8 +1,8 @@
 import os
 import sys
 
-FILE_PATH = "ssd_nand.txt"
-OUT_FILE_PATH = "ssd_output.txt"
+from constant import FILENAME, FILENAME_OUT
+
 
 
 class FileManager:
@@ -21,13 +21,13 @@ class FileManager:
 
 class SSD:
     def __init__(self, file_manager):
-        if not os.path.exists(FILE_PATH):
-            with open(FILE_PATH, "w") as f:
+        if not os.path.exists(FILENAME):
+            with open(FILENAME, "w") as f:
                 for i in range(100):
                     f.write(f"{i}\t0x00000000\n")
 
         self.contents = ""
-        with open(FILE_PATH, "r") as f:
+        with open(FILENAME, "r") as f:
             self.contents += f.readline()
         self.file_manager = file_manager
 
@@ -44,7 +44,7 @@ class SSD:
 
     def file_to_dict(self):
         result = {}
-        with open(FILE_PATH, "r") as f:
+        with open(FILENAME, "r") as f:
             for line in f:
                 line = line.strip()
                 if not line:
@@ -57,12 +57,12 @@ class SSD:
         return result
 
     def dict_to_file(self, data):
-        with open(FILE_PATH, "w") as f:
+        with open(FILENAME, "w") as f:
             for key, value in data.items():
                 f.write(f"{key}\t{value}\n")
 
     def write_output_file(self, str):
-        with open(OUT_FILE_PATH, "w") as f:
+        with open(FILENAME_OUT, "w") as f:
             f.write(str)
 
     def write(self, LBA, data):

@@ -3,8 +3,10 @@ import random
 from dataclasses import dataclass
 
 from commands import ReadCommand, WriteCommand
-from consts.commands import CommandEnum, VALUE_REQUIRE_COMMANDS
-from consts.help_msg import HELP_MSG
+from constant import CommandEnum
+
+
+VALUE_REQUIRE_COMMANDS = [CommandEnum.WRITE, CommandEnum.FULLWRITE]
 
 
 @dataclass
