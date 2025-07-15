@@ -14,14 +14,13 @@ class FileManager:
 
     def init_nand_txt(self):
         if not os.path.exists(FILENAME):
-            with open(FILENAME, "w") as f:
-                for i in range(100):
-                    f.write(f"{i}\t0x00000000\n")
+            with self.filename_lock:
+                with open(FILENAME, "w") as f:
+                    for i in range(100):
+                        f.write(f"{i}\t0x00000000\n")
 
     def _read_whole_contents_nand_txt(self) -> dict[int, str]:
-
         result = {}
-
         with self.filename_lock:
             with open(FILENAME, "r") as f:
                 for line in f:

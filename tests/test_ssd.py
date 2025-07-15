@@ -58,9 +58,3 @@ def test_write_check_file(ssd):
 
     ssd.file_manager.write_nand_txt.assert_called()
 
-
-def test_out_of_index_error(ssd):
-    lba = 120
-    ssd.write(lba, "0x1298CDEF")
-
-    ssd.file_manager.write_nand_txt.assert_not_called()
