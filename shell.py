@@ -1,13 +1,8 @@
 from typing import Optional
 
 import utils
-from commands import ReadCommand, WriteCommand
-from constant import (
-    ShellCommandEnum,
-    FILENAME_MAIN_SSD,
-    FILENAME_OUT,
-    HELP_MSG
-)
+from commands import ReadShellCommand, WriteShellCommand
+from constant import (FILENAME_MAIN_SSD, FILENAME_OUT, HELP_MSG, ShellCommandEnum)
 
 TWO_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.WRITE]
 ONE_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.READ, ShellCommandEnum.FULLWRITE]
@@ -62,7 +57,7 @@ class Shell:
 
     @classmethod
     def _read_value(cls, lba: int) -> str:
-        command = ReadCommand(FILENAME_MAIN_SSD, lba)
+        command = ReadShellCommand(FILENAME_MAIN_SSD, lba)
         subprocess_success = command.execute()
         if not subprocess_success:
             return "ERROR"
@@ -80,7 +75,7 @@ class Shell:
 
     @classmethod
     def _write_value(cls, lba: int, value: str) -> bool:
-        command = WriteCommand(FILENAME_MAIN_SSD, lba, value)
+        command = WriteShellCommand(FILENAME_MAIN_SSD, lba, value)
         subprocess_success = command.execute()
         if not subprocess_success:
             return False
