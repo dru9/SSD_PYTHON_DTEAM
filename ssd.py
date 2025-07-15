@@ -1,7 +1,10 @@
 import os
 import sys
+
 from filelock import Timeout, FileLock
+
 from constant import FILENAME, FILENAME_OUT, FILENAME_LOCK, FILENAME_OUT_LOCK
+
 
 class FileManager:
     def __init__(self):
@@ -57,9 +60,6 @@ class SSD:
         self.file_manager = file_manager
 
     def read(self, lba):
-        if lba < 0 or lba > 99:
-            self.file_manager.write_output_file("ERROR")
-            return
         read_value = self.file_manager.read_nand_txt(lba)
         if read_value == "":
             self.file_manager.write_output_txt("ERROR")
@@ -67,10 +67,6 @@ class SSD:
             self.file_manager.write_output_txt(read_value)
 
     def write(self, lba, data):
-        if lba < 0 or lba > 99:
-            self.file_manager.write_output_txt("ERROR")
-            return
-
         if not self.file_manager.write_nand_txt(lba, data):
             self.file_manager.write_output_txt("ERROR")
         self.file_manager.write_output_txt("")
@@ -86,13 +82,16 @@ class SSD:
         except ValueError:
             return False
 
+    def _index_valid(self, num):
+        return num.isdigit() and int(num) >= 0 and int(num) <= 99
+
     def execute_command(self, args):
         argument_len = len(args)
         if argument_len < 3:
             print("At least two argument are required")
             self.file_manager.write_output_txt("ERROR")
             return
-        if not args[2].isdigit() or (int(args[2]) < 0) or (int(args[2]) > 99):
+        if not self._index_valid(args[2]):
             print("The index should be an integer among 0 ~ 99")
             self.file_manager.write_output_txt("ERROR")
             return
