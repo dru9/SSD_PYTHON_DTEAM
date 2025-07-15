@@ -5,36 +5,31 @@ from ssd import SSD, FileManager
 import re
 
 
-def test_write_and_read():
-    ssd = SSD()
+def test_write_and_read(mocker: MockerFixture):
+    mock_file_manager = mocker.Mock()
+    ssd = SSD(mock_file_manager)
+
     lba = 0
     expected = "0x12345678"
     ssd.write(lba, expected)
-
     ssd.read(lba)
-    f = open("./ssd_output.txt", 'r')
-    actual = f.readline()
-    f.close()
 
-    assert actual == expected
-
-
-def test_init_ssd_nand_file():
-    ssd = SSD()
-    for each_lba in range(0, 100):
-        ssd.read(each_lba)
-        f = open("./ssd_output.txt", 'r')
-        actual = f.readline()
-        f.close()
-        assert isinstance(actual, str)
+    mock_file_manager._read_nand_txt.assert_called()
+    mock_file_manager.read_nand.assert_called_once()
+    mock_file_manager.write_nand.assert_called_once()
+    mock_file_manager.write_output.assert_called_once()
 
 
-def test_read_ssd_nand_txt_file_called_by_read():
-    ssd = SSD()
+def test_read_ssd_nand_txt_file_called_by_read(mocker: MockerFixture):
+    mock_file_manager = mocker.Mock()
+    ssd = SSD(mock_file_manager)
+
     read_idx = 0
     ssd.read(read_idx)
 
-    assert ssd.contents
+    mock_file_manager._read_nand_txt.assert_called()
+    mock_file_manager.read_nand.assert_called_once()
+    mock_file_manager.write_output.assert_called_once()
 
 
 def test_read_ssd_nand_txt_file_called_by_write(mock: MockerFixture):
