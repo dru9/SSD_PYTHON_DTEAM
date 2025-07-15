@@ -10,10 +10,17 @@ class FileManager:
     def __init__(self):
         self.filename_lock = FileLock(FILENAME_LOCK, timeout=10)
         self.filename_out_lock = FileLock(FILENAME_OUT_LOCK, timeout=10)
+        self.init_nand_txt()
+
+    def init_nand_txt(self):
+        if not os.path.exists(FILENAME):
+            with self.filename_lock:
+                with open(FILENAME, "w") as f:
+                    for i in range(100):
+                        f.write(f"{i}\t0x00000000\n")
 
     def _read_whole_contents_nand_txt(self) -> dict[int, str]:
         result = {}
-
         with self.filename_lock:
             with open(FILENAME, "r") as f:
                 for line in f:
@@ -53,10 +60,6 @@ class FileManager:
 
 class SSD:
     def __init__(self, file_manager):
-        if not os.path.exists(FILENAME):
-            with open(FILENAME, "w") as f:
-                for i in range(100):
-                    f.write(f"{i}\t0x00000000\n")
         self.file_manager = file_manager
 
     def read(self, lba):
