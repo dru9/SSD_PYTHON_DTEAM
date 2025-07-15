@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from typing import Optional
 
 import utils
@@ -9,6 +11,7 @@ from constant import (
     MESSAGE_ERROR,
     MESSAGE_FAIL,
     MESSAGE_HELP,
+    MESSAGE_INVALID_SHELL_CMD,
     MESSAGE_PASS,
     ShellCommandEnum
 )
@@ -55,11 +58,10 @@ class SSDReaderWriter:
             return MESSAGE_ERROR
 
 
-class Shell:
-    reader_writer = SSDReaderWriter
+class ShellParser:
 
     @classmethod
-    def get_command(cls):
+    def parse(cls):
         try:
             user_input = input("Shell> ").strip()
             if not user_input:
@@ -91,6 +93,28 @@ class Shell:
                 return cmd
 
         return ShellCommandEnum.INVALID
+
+
+class Shell:
+    reader_writer = SSDReaderWriter
+    shell_parser = ShellParser
+    _command_mapping_dict = None
+
+    @classmethod
+    def _command_mapper(cls, cmd):
+        if cls._command_mapping_dict is None:
+            cls._command_mapping_dict = {
+                ShellCommandEnum.HELP: lambda x: print(MESSAGE_HELP),
+                ShellCommandEnum.READ: cls.read,
+                ShellCommandEnum.WRITE: cls.write,
+                ShellCommandEnum.FULLREAD: cls.full_read,
+                ShellCommandEnum.FULLWRITE: cls.full_write,
+                ShellCommandEnum.SCRIPT_1: cls.script_1,
+                ShellCommandEnum.SCRIPT_2: cls.script_2,
+                ShellCommandEnum.SCRIPT_3: cls.script_3,
+                ShellCommandEnum.INVALID: lambda x: print(MESSAGE_INVALID_SHELL_CMD)
+            }
+        return cls._command_mapping_dict[cmd]
 
     @classmethod
     def read(cls, lba: int) -> str:
@@ -169,37 +193,19 @@ class Shell:
         return MESSAGE_PASS
 
     @classmethod
-    def execute_command(cls, cmd: str, args: list) -> Optional[str]:
-        print(f"Entered command: {cmd}  with args: {args}")
-        if cmd == ShellCommandEnum.HELP:
-            print(MESSAGE_HELP)
-            return None
-        elif cmd == ShellCommandEnum.READ:
-            return cls.read(*args)
-        elif cmd == ShellCommandEnum.WRITE:
-            return cls.write(*args)
-        elif cmd == ShellCommandEnum.FULLREAD:
-            return cls.full_read()
-        elif cmd == ShellCommandEnum.FULLWRITE:
-            return cls.full_write(*args)
-        elif cmd == ShellCommandEnum.SCRIPT_1:
-            return cls.script_1()
-        elif cmd == ShellCommandEnum.SCRIPT_2:
-            return cls.script_2()
-        elif cmd == ShellCommandEnum.SCRIPT_3:
-            return cls.script_3()
-        else:
-            raise NotImplementedError(f"Not implemented function for '{cmd}'")
-
-    @classmethod
     def run(cls) -> None:
         while True:
-            cmd, args = cls.get_command()
+            cmd, args = cls.shell_parser.parse()
             if cmd == ShellCommandEnum.EXIT:
                 break
             if cmd is None:
                 continue
             print(cls.execute_command(cmd, args))
+
+    @classmethod
+    def execute_command(cls, cmd: str, args: list) -> Optional[str]:
+        func = cls._command_mapper(cmd)
+        return func(*args)
 
 
 if __name__ == "__main__":
