@@ -1,8 +1,7 @@
+import re
 import pytest
 from pytest_mock import MockerFixture
-
 from ssd import SSD, FileManager
-import re
 
 
 def test_write_and_read(mocker: MockerFixture):

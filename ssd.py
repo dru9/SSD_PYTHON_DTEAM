@@ -6,13 +6,35 @@ OUT_FILE_PATH = "ssd_output.txt"
 
 
 class FileManager:
-    def _read_whole_contents_nand_txt(self):
-        pass
+    def _read_whole_contents_nand_txt(self) -> dict[int, str]:
+        result = {}
+        with open(FILE_PATH, "r") as f:
+            for line in f:
+                line = line.strip()
+                if not line:
+                    continue  # 빈 줄 무시
+                parts = line.split("\t")
+                if len(parts) != 2:
+                    continue
+                result[int(parts[0])] = parts[1]
+        return result
+
+    def _save_to_nand_file(self, data) -> None:
+        with open(FILE_PATH, "w") as f:
+            for key, value in data.items():
+                f.write(f"{key}\t{value}\n")
+
     def read_nand_txt(self, lba):
         pass
 
-    def write_nand_txt(self, lba, data):
-        pass
+    def write_nand_txt(self, lba, change_data) -> bool:
+        nand_datas = self._read_whole_contents_nand_txt()
+        current_data = nand_datas.get(lba, "")
+        if current_data == "":
+            return False
+        nand_datas[lba] = change_data
+        self._save_to_nand_file(nand_datas)
+        return True
 
     def write_output_txt(self, contents: str):
         pass
@@ -60,18 +82,14 @@ class SSD:
         with open(OUT_FILE_PATH, "w") as f:
             f.write(str)
 
-    def write(self, LBA, data):
-        if LBA < 0 or LBA > 99:
-            self.write_output_file("ERROR")
+    def write(self, lba, data):
+        if lba < 0 or lba > 99:
+            self.file_manager.write_output_txt("ERROR")
             return
 
-        data_list = self.file_to_dict()
-        data_list.get(LBA, "")
-        if data_list == "":
-            self.write_output_file("ERROR")
-        data_list[LBA] = data
-        self.dict_to_file(data_list)
-        self.write_output_file("")
+        if not self.file_manager.write_nand_txt(lba, data):
+            self.file_manager.write_output_txt("ERROR")
+        self.file_manager.write_output_txt("")
 
 
 if __name__ == "__main__":
@@ -82,7 +100,7 @@ if __name__ == "__main__":
         print("The index should be an integer among 0 ~ 99")
         sys.exit(1)
 
-    ssd = SSD()
+    ssd = SSD(FileManager)
     mode = sys.argv[1]
     LBA = int(sys.argv[2])
     if mode == "W" and len(sys.argv) == 4:
