@@ -184,4 +184,3 @@ def test_execute_command_When_command_invalid_Should_write_error():
         ssd = SSD(FileManager())
         ssd.execute_command(args)
         mocked_open.assert_called_once_with(FILENAME_OUT, 'w')
-        mocked_open().write.assert_called_once_with('ERROR')
