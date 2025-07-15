@@ -32,8 +32,8 @@ def test_read_ssd_nand_txt_file_called_by_read(mocker: MockerFixture):
     mock_file_manager.write_output.assert_called_once()
 
 
-def test_read_ssd_nand_txt_file_called_by_write(mock: MockerFixture):
-    mock_file_manager = mock.Mock(spec=FileManager)
+def test_read_ssd_nand_txt_file_called_by_write(mocker: MockerFixture):
+    mock_file_manager = mocker.Mock(spec=FileManager)
     ssd = SSD(mock_file_manager)
 
     write_idx = 0
@@ -44,8 +44,8 @@ def test_read_ssd_nand_txt_file_called_by_write(mock: MockerFixture):
     mock_file_manager.write_nand_txt.assert_called()
 
 
-def test_read_method_record_ssd_output_txt(mock: MockerFixture):
-    mock_file_manager = mock.Mock(spec=FileManager)
+def test_read_method_record_ssd_output_txt(mocker: MockerFixture):
+    mock_file_manager = mocker.Mock(spec=FileManager)
     ssd = SSD(mock_file_manager)
 
     read_idx = 0
@@ -55,8 +55,8 @@ def test_read_method_record_ssd_output_txt(mock: MockerFixture):
     mock_file_manager.write_output_txt.assert_called()
 
 
-def test_write_ssd(mock: MockerFixture):
-    mock_file_manager = mock.Mock(spec=FileManager)
+def test_write_ssd(mocker: MockerFixture):
+    mock_file_manager = mocker.Mock(spec=FileManager)
     ssd = SSD(mock_file_manager)
     loc = 3
     ssd.write(loc, "0xFFFFFFFF")
