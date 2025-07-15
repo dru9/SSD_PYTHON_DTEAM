@@ -62,7 +62,7 @@ def test_write_check_file(ssd):
     ssd.file_manager.write_nand_txt.assert_called()
 
 
-def test_execute_command_When_write_normal_Should_write_value():
+def test_execute_command_when_write_normal_should_write_value():
     ssd = SSD(FileManager())
     initial_file_data = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n'
     mocked_open = mock_open(read_data=initial_file_data)
@@ -78,24 +78,24 @@ def test_execute_command_When_write_normal_Should_write_value():
         mocked_open().write.assert_any_call("")
 
 
-def test_execute_command_When_args_is_invalid_Should_write_error():
+def test_execute_command_when_args_is_invalid_should_write_error():
     run_execute_command_and_assert([None, "W"], 'w', 'ERROR')
     run_execute_command_and_assert([None], 'w', 'ERROR')
 
 
-def test_execute_command_When_read_out_of_range_Should_write_error():
+def test_execute_command_when_read_out_of_range_should_write_error():
     run_execute_command_and_assert([None, "R", "100"], 'w', 'ERROR')
     run_execute_command_and_assert([None, "R", "-1"], 'w', 'ERROR')
 
 
-def test_execute_command_When_write_invalid_value_Should_write_error():
+def test_execute_command_when_write_invalid_value_should_write_error():
     run_execute_command_and_assert([None, "W", "100", "0x00000000"], 'w', 'ERROR')
     run_execute_command_and_assert([None, "W", "0", "0xAAAAAAAQ"], 'w', 'ERROR')
     run_execute_command_and_assert([None, "W", "0", "12AAAAAAAQ"], 'w', 'ERROR')
     run_execute_command_and_assert([None, "W", "0", "0x12345678910"], 'w', 'ERROR')
 
 
-def test_execute_command_When_command_invalid_Should_write_error():
+def test_execute_command_when_command_invalid_should_write_error():
     run_execute_command_and_assert([None, "A", "0"], 'w', 'ERROR')
 
 
