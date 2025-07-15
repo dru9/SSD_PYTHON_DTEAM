@@ -60,15 +60,6 @@ class SSD:
         else:
             self.file_manager.write_output_txt(read_value)
 
-    def dict_to_file(self, data):
-        with open(FILE_PATH, "w") as f:
-            for key, value in data.items():
-                f.write(f"{key}\t{value}\n")
-
-    def write_output_file(self, str):
-        with open(OUT_FILE_PATH, "w") as f:
-            f.write(str)
-
     def write(self, lba, data):
         if lba < 0 or lba > 99:
             self.file_manager.write_output_txt("ERROR")
