@@ -8,6 +8,7 @@ OUT_FILE_PATH = "ssd_output.txt"
 class FileManager:
     def _read_whole_contents_nand_txt(self):
         pass
+
     def read_nand_txt(self, lba):
         pass
 
@@ -86,7 +87,7 @@ if __name__ == "__main__":
         print("The index should be an integer among 0 ~ 99")
         sys.exit(1)
 
-    ssd = SSD()
+    ssd = SSD(FileManager())
     mode = sys.argv[1]
     LBA = int(sys.argv[2])
     if mode == "W" and len(sys.argv) == 4:
