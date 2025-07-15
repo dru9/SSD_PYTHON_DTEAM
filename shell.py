@@ -1,3 +1,5 @@
+import random
+
 from dataclasses import dataclass
 
 from commands import ReadCommand, WriteCommand
@@ -101,12 +103,11 @@ class Shell:
                 return f"[Full Write] ERROR in LBA[{i:02d}]"
         return "[Full Write] Done"
 
-    def full_read(self) -> str:
+    def full_read(self, num_iter: int = 100) -> str:
         header = "[Full Read]"
-        num_iter: int = 100
         results = [header]
         results += [
-            f"LBA {i:0>2} : {self.read(lba=i)}"
+            f"LBA {i:0>2} : {self._read_core(lba=i)}"
             for i in range(num_iter)
         ]
         return "\n".join(results)
@@ -117,8 +118,13 @@ class Shell:
     def script_2(self):
         pass
 
-    def script_3(self):
-        pass
+    def script_3(self, num_iter: int = 200) -> None:
+        lba_1, lba_2 = (0, 99)
+        for _ in range(num_iter):
+            value = str(random.randint(0, 99_999_999)).zfill(8)
+            self._write_core(lba=lba_1, value=value)
+            self._write_core(lba=lba_2, value=value)
+            assert self._read_core(lba_1) == self._read_core(lba_2), "Invalid results from test script 3"
 
     def execute_command(self, command: str, args: list):
         print(f"Entered command: {command}  with args: {args}")
