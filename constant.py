@@ -16,6 +16,8 @@ class ShellCommandEnum(Enum):
 
 FILENAME = "ssd_nand.txt"
 FILENAME_OUT = "ssd_output.txt"
+FILENAME_MAIN_SSD = "ssd.py"
+
 
 HELP_MSG = """
 usage: <command> [<args>]

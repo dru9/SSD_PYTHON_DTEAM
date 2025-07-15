@@ -21,7 +21,7 @@ class FileManager:
         return result
 
     def _save_to_nand_file(self, data) -> None:
-        with open(FILE_PATH, "w") as f:
+        with open(FILENAME, "w") as f:
             for key, value in data.items():
                 f.write(f"{key}\t{value}\n")
 
@@ -39,14 +39,14 @@ class FileManager:
         return True
 
     def write_output_txt(self, contents: str):
-        with open(OUT_FILE_PATH, "w") as f:
+        with open(FILENAME_OUT, "w") as f:
             f.write(contents)
 
 
 class SSD:
     def __init__(self, file_manager):
-        if not os.path.exists(FILE_PATH):
-            with open(FILE_PATH, "w") as f:
+        if not os.path.exists(FILENAME):
+            with open(FILENAME, "w") as f:
                 for i in range(100):
                     f.write(f"{i}\t0x00000000\n")
         self.file_manager = file_manager
