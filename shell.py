@@ -1,5 +1,7 @@
 from dataclasses import dataclass
 
+from commands import ReadCommand
+from commands import WriteCommand
 from consts.commands import CommandEnum
 from consts.commands import VALUE_REQUIRE_COMMANDS
 from consts.help_msg import HELP_MSG
@@ -8,6 +10,7 @@ from consts.help_msg import HELP_MSG
 @dataclass
 class ShellConfig:
     SSD_PY_PATH = "ssd.py"
+    OUTPUT_FILE_PATH = "ssd_output.txt"
 
 
 class Shell:
@@ -46,11 +49,42 @@ class Shell:
 
         return CommandEnum.INVALID
 
-    def read(self, lba: int):
-        pass
+    def _read_output_file(self) -> str:
+        try:
+            with open(self.config.OUTPUT_FILE_PATH, 'r') as f:
+                content = f.read().strip()
+                return content if content else "ERROR"
+        except FileNotFoundError:
+            return "ERROR"
+        except Exception:
+            return "ERROR"
 
-    def write(self, lba: int, value: str):
-        pass
+    def _read_core(self, lba: int) -> str:
+        command = ReadCommand(self.config.SSD_PY_PATH, lba)
+        success = command.execute()
+
+        if success:
+            result = self._read_output_file()
+            return result
+        else:
+            return "ERROR"
+
+    def read(self, lba: int) -> str:
+        lba = int(lba)  # todo: safe convert
+        result = self._read_core(lba)
+        if result == "ERROR":
+            return "[Read] ERROR"
+        else:
+            return f"[Read] LBA {lba:02d} : {result}"
+
+    def write(self, lba: int, value: str) -> str:
+        command = WriteCommand(self.config.SSD_PY_PATH, lba, value)
+        success = command.execute()
+
+        if success:
+            return "[Write] Done"
+        else:
+            return "[Write] ERROR"
 
     def write_error_to_output(self):
         pass
@@ -85,6 +119,8 @@ class Shell:
         print(f"Entered command: {command}  with args: {args}")
         if command == CommandEnum.HELP:
             print(HELP_MSG)
+        elif command == CommandEnum.READ:
+            return self.read(*args)
 
     def main_loop(self):
         while True:
@@ -95,7 +131,7 @@ class Shell:
 
             if command == CommandEnum.EXIT: break
 
-            self.execute_command(command, args)
+            print(self.execute_command(command, args))
 
 
 if __name__ == "__main__":
