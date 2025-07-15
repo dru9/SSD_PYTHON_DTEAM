@@ -16,6 +16,8 @@ class CommandEnum(Enum):
 
 FILENAME = "ssd_nand.txt"
 FILENAME_OUT = "ssd_output.txt"
+FILENAME_LOCK = "ssd_nand.lock"
+FILENAME_OUT_LOCK = "ssd_output.lock"
 
 HELP_MSG = """
 usage: <command> [<args>]
