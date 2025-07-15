@@ -4,6 +4,15 @@ FILE_PATH = "ssd_nand.txt"
 OUT_FILE_PATH = "ssd_output.txt"
 
 
+class FileManager:
+    def read_nand_txt(self, lba):
+        pass
+    def write_nand_txt(self, lba, data):
+        pass
+    def write_output_txt(self, contents: str):
+        pass
+
+
 class SSD:
     def __init__(self):
         if not os.path.exists(FILE_PATH):
@@ -14,6 +23,7 @@ class SSD:
         self.contents = ""
         with open(FILE_PATH, "r") as f:
             self.contents += f.readline()
+        self.file_manager = FileManager()
 
     def read(self, LBA):
         if LBA < 0 or LBA > 99:
