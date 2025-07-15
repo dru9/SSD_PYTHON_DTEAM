@@ -1,6 +1,7 @@
-import re
+from unittest.mock import mock_open, patch
+
 import pytest
-from pytest_mock import MockerFixture
+
 from ssd import SSD, FileManager
 
 
@@ -37,6 +38,7 @@ def test_read_ssd_nand_txt_file_called_by_write(ssd):
 
     ssd.file_manager.write_nand_txt.assert_called()
 
+
 def test_read_method_record_ssd_output_txt(ssd):
     lba = 0
     ssd.read(lba)
@@ -58,3 +60,32 @@ def test_write_check_file(ssd):
 
     ssd.file_manager.write_nand_txt.assert_called()
 
+
+@patch('builtins.open', new_callable=mock_open)
+def test_filemanager_nand_write(mock_file):
+    lba = 11
+    return_value = {lba: "0x00000000"}
+    with patch.object(FileManager, '_read_whole_contents_nand_txt', return_value=return_value):
+        file_manager = FileManager()
+        contents = "0x12341234"
+        file_manager.write_nand_txt(lba, contents)
+        mock_file.assert_called_with('ssd_nand.txt', 'w')
+
+
+@patch('builtins.open', new_callable=mock_open)
+def test_filemanager_nand_write_fail(mock_file):
+    lba = 11
+    return_value = {lba: ""}
+    with patch.object(FileManager, '_read_whole_contents_nand_txt', return_value=return_value):
+        file_manager = FileManager()
+        contents = "0x12341234"
+        result = file_manager.write_nand_txt(lba, contents)
+        assert result == False
+
+
+@patch('builtins.open', new_callable=mock_open)
+def test_filemanager_write_file(mock_file):
+    lba = 11
+    file_manager = FileManager()
+    result = file_manager.write_output_txt("ERROR")
+    mock_file.assert_called_with('ssd_output.txt', 'w')
