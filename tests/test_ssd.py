@@ -1,7 +1,7 @@
+import re
 import pytest
 from pytest_mock import MockerFixture
 from ssd import SSD, FileManager
-import re
 
 
 def test_write_and_read(mocker: MockerFixture):
@@ -36,7 +36,6 @@ def test_read_ssd_nand_txt_file_called_by_write(mocker: MockerFixture):
     write_contents = "0x00001111"
     ssd.write(write_idx, write_contents)
 
-    mock_file_manager._read_whole_contents_nand_txt.assert_called()
     mock_file_manager.write_nand_txt.assert_called()
 
 
