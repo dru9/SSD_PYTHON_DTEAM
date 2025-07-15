@@ -1,6 +1,8 @@
 import os
 import sys
+
 from filelock import Timeout, FileLock
+
 from constant import FILENAME, FILENAME_OUT, FILENAME_LOCK, FILENAME_OUT_LOCK
 
 
@@ -62,9 +64,6 @@ class SSD:
         self.file_manager = file_manager
 
     def read(self, lba):
-        if lba < 0 or lba > 99:
-            self.file_manager.write_output_file("ERROR")
-            return
         read_value = self.file_manager.read_nand_txt(lba)
         if read_value == "":
             self.file_manager.write_output_txt("ERROR")
@@ -72,44 +71,46 @@ class SSD:
             self.file_manager.write_output_txt(read_value)
 
     def write(self, lba, data):
-        if lba < 0 or lba > 99:
-            self.file_manager.write_output_txt("ERROR")
-            return
-
         if not self.file_manager.write_nand_txt(lba, data):
             self.file_manager.write_output_txt("ERROR")
         self.file_manager.write_output_txt("")
 
+    def check_hex(self, data):
+        if len(data) != 10:
+            return False
+        if not data[:2] == "0x":
+            return False
+        try:
+            int(data[2:], 16)
+            return True
+        except ValueError:
+            return False
 
-def check_hex(data):
-    if len(data) != 10:
-        return False
-    if not data[:2] == "0x":
-        return False
-    try:
-        int(data[2:], 16)
-        return True
-    except ValueError:
-        return False
+    def _index_valid(self, num):
+        return num.isdigit() and int(num) >= 0 and int(num) <= 99
+
+    def execute_command(self, args):
+        argument_len = len(args)
+        if argument_len < 3:
+            print("At least two argument are required")
+            self.file_manager.write_output_txt("ERROR")
+            return
+        if not self._index_valid(args[2]):
+            print("The index should be an integer among 0 ~ 99")
+            self.file_manager.write_output_txt("ERROR")
+            return
+
+        mode = args[1]
+        lba = int(args[2])
+        if mode == "W" and self.check_hex(args[3]) and argument_len == 4:
+            self.write(lba, args[3])
+        elif mode == "R" and argument_len == 3:
+            self.read(lba)
+        else:
+            self.file_manager.write_output_txt("ERROR")
+            print("Invalid argument")
 
 
 if __name__ == "__main__":
-    args = sys.argv
-    argument_len = len(args)
-    if argument_len < 3:
-        print("At least two argument are required")
-        sys.exit(1)
-    if not args[2].isdigit() or (int(args[2]) < 0) or (int(args[2]) > 99):
-        print("The index should be an integer among 0 ~ 99")
-        sys.exit(1)
-
     ssd = SSD(FileManager())
-    mode = sys.argv[1]
-    lba = int(sys.argv[2])
-    if mode == "W" and len(sys.argv) == 4:
-
-        ssd.write(lba, sys.argv[3])
-    elif mode == "R" and argument_len == 3:
-        ssd.read(lba)
-    else:
-        print("Invalid argument")
+    ssd.execute_command(sys.argv)
