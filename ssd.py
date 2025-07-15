@@ -24,10 +24,6 @@ class SSD:
             with open(FILE_PATH, "w") as f:
                 for i in range(100):
                     f.write(f"{i}\t0x00000000\n")
-
-        self.contents = ""
-        with open(FILE_PATH, "r") as f:
-            self.contents += f.readline()
         self.file_manager = file_manager
 
     def read(self, LBA):
