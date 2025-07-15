@@ -1,9 +1,7 @@
-import pytest
 from pytest_mock import MockerFixture  # noqa
 
 from consts.commands import CommandEnum
 from consts.help_msg import HELP_MSG
-
 
 
 def test_read(mocker: MockerFixture):
@@ -60,3 +58,27 @@ def test_find_invalid_command(mocker: MockerFixture):
     shell.find_command.return_value = CommandEnum.INVALID
     res = shell.find_command(command_str="wow")
     assert res == CommandEnum.INVALID
+
+
+def test_script_1(mocker: MockerFixture):
+    shell = mocker.Mock()
+    shell.script_1.return_value = "PASS"
+    res = shell.script_1()
+    assert res == "PASS"
+    shell.script_1.assert_called()
+
+
+def test_script_2(mocker: MockerFixture):
+    shell = mocker.Mock()
+    shell.script_2.return_value = "PASS"
+    res = shell.script_2()
+    assert res == "PASS"
+    shell.script_2.assert_called()
+
+
+def test_script_3(mocker: MockerFixture):
+    shell = mocker.Mock()
+    shell.script_3.return_value = "PASS"
+    res = shell.script_3()
+    assert res == "PASS"
+    shell.script_3.assert_called()
