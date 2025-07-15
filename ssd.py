@@ -2,7 +2,6 @@ import os
 import sys
 
 from filelock import Timeout, FileLock
-
 from constant import FILENAME, FILENAME_OUT, FILENAME_LOCK, FILENAME_OUT_LOCK
 
 
@@ -75,9 +74,7 @@ class SSD:
         self.file_manager.write_output_txt("")
 
     def check_hex(self, data):
-        if len(data) != 10:
-            return False
-        if not data[:2] == "0x":
+        if len(data) != 10 or not data.startswith("0x"):
             return False
         try:
             int(data[2:], 16)
