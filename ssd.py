@@ -1,20 +1,25 @@
 import os
+import sys
 
 FILE_PATH = "ssd_nand.txt"
 OUT_FILE_PATH = "ssd_output.txt"
 
 
 class FileManager:
+    def _read_whole_contents_nand_txt(self):
+        pass
     def read_nand_txt(self, lba):
         pass
+
     def write_nand_txt(self, lba, data):
         pass
+
     def write_output_txt(self, contents: str):
         pass
 
 
 class SSD:
-    def __init__(self):
+    def __init__(self, file_manager):
         if not os.path.exists(FILE_PATH):
             with open(FILE_PATH, "w") as f:
                 for i in range(100):
@@ -23,7 +28,7 @@ class SSD:
         self.contents = ""
         with open(FILE_PATH, "r") as f:
             self.contents += f.readline()
-        self.file_manager = FileManager()
+        self.file_manager = file_manager
 
     def read(self, LBA):
         if LBA < 0 or LBA > 99:
@@ -71,3 +76,22 @@ class SSD:
         data_list[LBA] = data
         self.dict_to_file(data_list)
         self.write_output_file("")
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print("At least two argument are required")
+        sys.exit(1)
+    if not sys.argv[2].isdigit() or (int(sys.argv[2]) < 0) or (int(sys.argv[2]) > 99):
+        print("The index should be an integer among 0 ~ 99")
+        sys.exit(1)
+
+    ssd = SSD()
+    mode = sys.argv[1]
+    LBA = int(sys.argv[2])
+    if mode == "W" and len(sys.argv) == 4:
+        ssd.write(LBA, sys.argv[3])
+    elif mode == "R" and len(sys.argv) == 3:
+        ssd.read(LBA)
+    else:
+        print("Invalid argument")
