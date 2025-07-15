@@ -48,7 +48,7 @@ class Shell:
         for cmd in ShellCommandEnum:
             if cmd.value == command_str:
                 return cmd
-            elif cmd.value.startswith(command_str):
+            elif cmd.value.lower().startswith(command_str):
                 return cmd
 
         return ShellCommandEnum.INVALID
