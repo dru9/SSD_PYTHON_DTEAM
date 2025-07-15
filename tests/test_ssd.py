@@ -13,11 +13,9 @@ def test_write_and_read(mocker: MockerFixture):
     ssd.write(lba, expected)
     ssd.read(lba)
 
-    mock_file_manager._read_nand_txt.assert_called()
-    mock_file_manager.read_nand.assert_called_once()
-    mock_file_manager.write_nand.assert_called_once()
-    mock_file_manager.write_output.assert_called_once()
-
+    mock_file_manager.read_nand_txt.assert_called_once()
+    mock_file_manager.write_nand_txt.assert_called_once()
+    mock_file_manager.write_output_txt.assert_called()
 
 def test_read_ssd_nand_txt_file_called_by_read(mocker: MockerFixture):
     mock_file_manager = mocker.Mock()
@@ -26,9 +24,8 @@ def test_read_ssd_nand_txt_file_called_by_read(mocker: MockerFixture):
     read_idx = 0
     ssd.read(read_idx)
 
-    mock_file_manager._read_nand_txt.assert_called()
-    mock_file_manager.read_nand.assert_called_once()
-    mock_file_manager.write_output.assert_called_once()
+    mock_file_manager.read_nand_txt.assert_called_once()
+    mock_file_manager.write_output_txt.assert_called_once()
 
 
 def test_read_ssd_nand_txt_file_called_by_write(mocker: MockerFixture):
