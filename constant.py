@@ -1,16 +1,16 @@
 from enum import Enum
 
 
-class CommandEnum(Enum):
+class ShellCommandEnum(Enum):
     WRITE = "write"
     READ = "read"
     FULLWRITE = "fullwrite"
     FULLREAD = "fullread"
     HELP = "help"
     EXIT = "exit"
-    SCRIPT_1 = "1_"
-    SCRIPT_2 = "2_"
-    SCRIPT_3 = "3_"
+    SCRIPT_1 = "1_FullWriteAndReadCompare"
+    SCRIPT_2 = "2_PartialLBAWrite"
+    SCRIPT_3 = "3_WriteReadAging"
     INVALID = "invalid"
 
 
