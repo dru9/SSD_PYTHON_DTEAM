@@ -64,20 +64,27 @@ def test_write_ssd(mocker: MockerFixture):
     mock_file_manager.write_nand_txt.assert_called()
 
 
-def test_write_check_file():
-    ssd = SSD()
+def test_write_check_file(mocker: MockerFixture):
+    mock_file_manager = mocker.Mock(spec=FileManager)
+    mock_file_manager.write_nand_txt.return_value = True
+    ssd = SSD(mock_file_manager)
     loc = 11
     ssd.write(loc, "0x1298CDEF")
+
+    mock_file_manager.write_nand_txt.assert_called()
 
     with open("ssd_output.txt", "r") as f:
         content = f.read()
     assert content == ""
 
 
-def test_out_of_index_error():
-    ssd = SSD()
+def test_out_of_index_error(mocker: MockerFixture):
+    mock_file_manager = mocker.Mock(spec=FileManager)
+    ssd = SSD(mock_file_manager)
     loc = 120
     ssd.write(loc, "0x1298CDEF")
+
+    mock_file_manager.write_nand_txt.assert_not_called()
 
     with open("ssd_output.txt", "r") as f:
         content = f.read()
