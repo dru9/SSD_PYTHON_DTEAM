@@ -1,7 +1,6 @@
 from unittest.mock import mock_open, patch
-
 import pytest
-
+from pytest_mock import MockerFixture
 from ssd import SSD, FileManager
 from unittest.mock import mock_open, patch, call
 from constant import FILENAME, FILENAME_OUT
