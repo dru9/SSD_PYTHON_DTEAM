@@ -8,8 +8,10 @@ OUT_FILE_PATH = "ssd_output.txt"
 class FileManager:
     def read_nand_txt(self, lba):
         pass
+
     def write_nand_txt(self, lba, data):
         pass
+
     def write_output_txt(self, contents: str):
         pass
 
@@ -78,7 +80,7 @@ if __name__ == "__main__":
     if len(sys.argv) < 3:
         print("At least two argument are required")
         sys.exit(1)
-    if not sys.argv[2].isdigit():
+    if not sys.argv[2].isdigit() or (int(sys.argv[2]) < 0) or (int(sys.argv[2]) > 99):
         print("The index should be an integer among 0 ~ 99")
         sys.exit(1)
 
