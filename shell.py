@@ -1,12 +1,11 @@
 import random
-
 from dataclasses import dataclass
 
 from commands import ReadCommand, WriteCommand
-from constant import CommandEnum
+from constant import ShellCommandEnum
 
-
-VALUE_REQUIRE_COMMANDS = [CommandEnum.WRITE, CommandEnum.FULLWRITE]
+TWO_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.WRITE]
+ONE_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.READ, ShellCommandEnum.FULLWRITE]
 
 
 @dataclass
@@ -31,25 +30,28 @@ class Shell:
 
             cmd = self.find_command(cmd_str)
 
-            if cmd in VALUE_REQUIRE_COMMANDS and len(args) == 0:
-                return CommandEnum.INVALID, []
+            if cmd in TWO_ARGS_REQUIRE_COMMANDS and len(args) != 2:
+                return ShellCommandEnum.INVALID, []
+
+            if cmd in ONE_ARGS_REQUIRE_COMMANDS and len(args) != 1:
+                return ShellCommandEnum.INVALID, []
 
             return cmd, args
 
         except (KeyboardInterrupt, EOFError):
-            return CommandEnum.EXIT, []
+            return ShellCommandEnum.EXIT, []
 
     @staticmethod
     def find_command(command_str: str):
         command_str = command_str.lower()
 
-        for cmd in CommandEnum:
+        for cmd in ShellCommandEnum:
             if cmd.value == command_str:
                 return cmd
             elif cmd.value.startswith(command_str):
                 return cmd
 
-        return CommandEnum.INVALID
+        return ShellCommandEnum.INVALID
 
     def _read_output_file(self) -> str:
         try:
@@ -158,22 +160,22 @@ class Shell:
 
     def execute_command(self, command: str, args: list):
         print(f"Entered command: {command}  with args: {args}")
-        if command == CommandEnum.HELP:
+        if command == ShellCommandEnum.HELP:
             print(HELP_MSG)
             return None
-        elif command == CommandEnum.READ:
+        elif command == ShellCommandEnum.READ:
             return self.read(*args)
-        elif command == CommandEnum.WRITE:
+        elif command == ShellCommandEnum.WRITE:
             return self.write(*args)
-        elif command == CommandEnum.FULLREAD:
+        elif command == ShellCommandEnum.FULLREAD:
             return self.full_read()
-        elif command == CommandEnum.FULLWRITE:
+        elif command == ShellCommandEnum.FULLWRITE:
             return self.full_write(*args)
-        elif command == CommandEnum.SCRIPT_1:
+        elif command == ShellCommandEnum.SCRIPT_1:
             return self.script_1()
-        elif command == CommandEnum.SCRIPT_2:
+        elif command == ShellCommandEnum.SCRIPT_2:
             return self.script_2()
-        elif command == CommandEnum.SCRIPT_3:
+        elif command == ShellCommandEnum.SCRIPT_3:
             return self.script_3()
         else:
             raise NotImplementedError()
@@ -185,7 +187,7 @@ class Shell:
             if command is None:
                 continue
 
-            if command == CommandEnum.EXIT: break
+            if command == ShellCommandEnum.EXIT: break
 
             print(self.execute_command(command, args))
 

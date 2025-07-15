@@ -1,7 +1,7 @@
 from enum import Enum
 
 
-class CommandEnum(Enum):
+class ShellCommandEnum(Enum):
     WRITE = "write"
     READ = "read"
     FULLWRITE = "fullwrite"
