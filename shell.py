@@ -58,7 +58,7 @@ class SSDReaderWriter:
             return MESSAGE_ERROR
 
 
-class ShellExecutor:
+class ShellParser:
 
     @classmethod
     def parse(cls):
@@ -97,7 +97,7 @@ class ShellExecutor:
 
 class Shell:
     reader_writer = SSDReaderWriter
-    shell_parser = ShellExecutor
+    shell_parser = ShellParser
     _command_mapping_dict = None
 
     @classmethod
