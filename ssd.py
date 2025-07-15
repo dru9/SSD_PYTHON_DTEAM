@@ -22,9 +22,7 @@ class FileManager:
 
     def read_nand_txt(self, lba):
         data_list = self._read_whole_contents_nand_txt()
-        if lba < 0 or LBA > lba or data_list == "":
-            return "ERROR"
-        return data_list[lba]
+        return data_list.get(lba, "")
 
     def write_nand_txt(self, lba, data):
         pass
@@ -43,8 +41,14 @@ class SSD:
         self.file_manager = file_manager
 
     def read(self, LBA):
+        if LBA < 0 or LBA > 99:
+            self.file_manager.write_output_file("ERROR")
+            return
         read_value = self.file_manager.read_nand_txt(LBA)
-        self.file_manager.write_output_txt(read_value)
+        if read_value == "":
+            self.file_manager.write_output_txt("ERROR")
+        else:
+            self.file_manager.write_output_txt(read_value)
 
     def dict_to_file(self, data):
         with open(FILE_PATH, "w") as f:
