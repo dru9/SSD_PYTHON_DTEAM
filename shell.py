@@ -183,6 +183,8 @@ class Shell:
             return "[Erase] ERROR"
         if end > 100:
             return "[Erase] ERROR"
+        if size < 1 or size > 100:
+            return "[Erase] Error"
 
         for i in range(start, end, step):
             _start, _end = (i, min(i+step, end))
