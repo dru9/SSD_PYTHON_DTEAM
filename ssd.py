@@ -271,7 +271,7 @@ class SSD:
                             new_buffers.append(b)
                             continue
                         if b.lba <= lba:
-                            # b.lba + range + b.range > 99 넘는 경우에도 추가하면 안돼!
+                            # b.lba + b.range > 100 또는 lba + erase_size > 100  넘는 경우에도 추가하면 안돼!
                             if lba + erase_size > 100 or b.lba + b.range > 100:
                                 new_buffers.append(b)
                                 continue
@@ -288,7 +288,7 @@ class SSD:
                             break
 
                         if lba < b.lba:
-                            # lba + range + b.range > 99 넘는 경우에도 추가하면 안돼
+                            # lba + range  > 100 or b.lba + b.range > 100 넘는 경우에도 추가하면 안돼
                             if lba + erase_size > 100 or b.lba + b.range > 100:
                                 new_buffers.append(b)
                                 continue
