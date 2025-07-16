@@ -22,7 +22,7 @@ class Buffer:
 
 class BufferManager:
     def __init__(self):
-        self.buffers = []  # list[Buffer]
+        self.buffers: list[Buffer] = []
 
         # ./buffer dir + empty 파일 5개 없으면 만듬
         if not os.path.exists(BUFFER_FOLDER):
