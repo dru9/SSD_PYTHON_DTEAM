@@ -3,7 +3,7 @@ import sys
 from typing import Optional
 
 import utils
-from commands import ReadShellCommand, WriteShellCommand
+from commands import EraseShellCommand, ReadShellCommand, WriteShellCommand
 from constant import (
     FILENAME_MAIN_SSD,
     FILENAME_OUT,
@@ -17,7 +17,12 @@ from constant import (
 )
 
 TWO_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.WRITE]
-ONE_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.READ, ShellCommandEnum.FULLWRITE]
+ONE_ARGS_REQUIRE_COMMANDS = [
+    ShellCommandEnum.READ,
+    ShellCommandEnum.FULLWRITE,
+    ShellCommandEnum.ERASE,
+    ShellCommandEnum.ERASE_RANGE,
+]
 
 
 class SSDReaderWriter:
@@ -34,6 +39,19 @@ class SSDReaderWriter:
     @classmethod
     def write(cls, lba: int, value: str) -> str:
         cmd = WriteShellCommand(FILENAME_MAIN_SSD, lba, value)
+        is_ssd_run = cmd.execute()
+        if not is_ssd_run:
+            return MESSAGE_ERROR
+
+        res = cls._cache_inout()
+        if res == "":
+            return MESSAGE_DONE
+
+        return MESSAGE_ERROR
+
+    @classmethod
+    def erase(cls, lba: int, size: int) -> str:
+        cmd = EraseShellCommand(FILENAME_MAIN_SSD, lba, size)
         is_ssd_run = cmd.execute()
         if not is_ssd_run:
             return MESSAGE_ERROR
@@ -109,9 +127,12 @@ class Shell:
                 ShellCommandEnum.WRITE: cls.write,
                 ShellCommandEnum.FULLREAD: cls.full_read,
                 ShellCommandEnum.FULLWRITE: cls.full_write,
+                ShellCommandEnum.ERASE: cls.erase,
+                ShellCommandEnum.ERASE_RANGE: cls.erase_range,
                 ShellCommandEnum.SCRIPT_1: cls.script_1,
                 ShellCommandEnum.SCRIPT_2: cls.script_2,
                 ShellCommandEnum.SCRIPT_3: cls.script_3,
+                ShellCommandEnum.SCRIPT_4: cls.script_4,
                 ShellCommandEnum.INVALID: lambda: MESSAGE_INVALID_SHELL_CMD
             }
         return cls._command_mapping_dict[cmd]
@@ -148,6 +169,35 @@ class Shell:
             for i in range(num_iter)
         ]
         return "\n".join(results)
+
+    @classmethod
+    def erase(cls, lba: int, size: int) -> str:
+        if not isinstance(lba, int):
+            return "[Erase] ERROR"
+        if not isinstance(size, int):
+            return "[Erase] ERROR"
+
+        start, end = (lba, lba+size)
+        step = 10
+        if start < 0:
+            return "[Erase] ERROR"
+        if end > 100:
+            return "[Erase] ERROR"
+        if size < 1 or size > 100:
+            return "[Erase] Error"
+
+        for i in range(start, end, step):
+            _start, _end = (i, min(i+step, end))
+            _size = _end - _start
+            ret = cls.reader_writer.erase(lba=_start, size=_size)
+            if ret == MESSAGE_ERROR:
+                return "[Erase] ERROR"
+
+        return "[Erase] Done"
+
+    @classmethod
+    def erase_range(cls, start_lba: int, end_lba: int) -> str:
+        pass
 
     @classmethod
     def script_1(cls, num_iter: int = 20) -> str:
@@ -191,6 +241,10 @@ class Shell:
             if cls.reader_writer.read(lba_1) != cls.reader_writer.read(lba_2):
                 return MESSAGE_FAIL
         return MESSAGE_PASS
+
+    @classmethod
+    def script_4(cls, num_iter: int = 30) -> str:
+        pass
 
     @classmethod
     def run(cls) -> None:

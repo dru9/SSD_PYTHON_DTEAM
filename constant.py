@@ -6,11 +6,14 @@ class ShellCommandEnum(Enum):
     READ = "read"
     FULLWRITE = "fullwrite"
     FULLREAD = "fullread"
+    ERASE = "erase"
+    ERASE_RANGE = "erase_range"
     HELP = "help"
     EXIT = "exit"
     SCRIPT_1 = "1_FullWriteAndReadCompare"
     SCRIPT_2 = "2_PartialLBAWrite"
     SCRIPT_3 = "3_WriteReadAging"
+    SCRIPT_4 = "4_EraseAndWriteAging"
     INVALID = "invalid"
 
 
