@@ -219,6 +219,7 @@ class Shell:
 
         for cmd in cmds:
             cmd = cmd.strip()
+            print(f"{cmd:<28}___   Run...", end="", flush=True)
             cmd_enum = cls.shell_parser.find_command(cmd)
 
             if cmd_enum == ShellCommandEnum.EXIT:
@@ -230,9 +231,9 @@ class Shell:
             ret = cls.execute_command(cmd_enum, [])
             if ret is not None:
                 if ret == MESSAGE_PASS:
-                    print(cmd, "___   Run...Pass")
+                    print("Pass")
                 else:
-                    print(cmd, "___   Run...FAIL!")
+                    print("FAIL!")
                     break
 
     @classmethod
