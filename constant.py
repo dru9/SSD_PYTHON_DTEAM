@@ -1,16 +1,16 @@
 from enum import Enum
 
 
-class CommandEnum(Enum):
+class ShellCommandEnum(Enum):
     WRITE = "write"
     READ = "read"
     FULLWRITE = "fullwrite"
     FULLREAD = "fullread"
     HELP = "help"
     EXIT = "exit"
-    SCRIPT_1 = "1_"
-    SCRIPT_2 = "2_"
-    SCRIPT_3 = "3_"
+    SCRIPT_1 = "1_FullWriteAndReadCompare"
+    SCRIPT_2 = "2_PartialLBAWrite"
+    SCRIPT_3 = "3_WriteReadAging"
     INVALID = "invalid"
 
 
@@ -18,8 +18,13 @@ FILENAME = "ssd_nand.txt"
 FILENAME_OUT = "ssd_output.txt"
 FILENAME_LOCK = "ssd_nand.lock"
 FILENAME_OUT_LOCK = "ssd_output.lock"
+FILENAME_MAIN_SSD = "ssd.py"
 
-HELP_MSG = """
+MESSAGE_DONE = "DONE"
+MESSAGE_ERROR = "ERROR"
+MESSAGE_FAIL = "FAIL"
+MESSAGE_PASS = "PASS"
+MESSAGE_HELP = """
 usage: <command> [<args>]
 
 read: read a value from the given LBA
@@ -36,3 +41,5 @@ test scripts:
 Team Leader: 송주환
 Team Members: 김희준, 박혜녹, 윤다영, 정동혁, 한누리, 오지은
 """
+
+MESSAGE_INVALID_SHELL_CMD = "Invalid shall command."
