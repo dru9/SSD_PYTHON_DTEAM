@@ -3,12 +3,7 @@ import os
 from datetime import datetime
 from typing import Optional, Tuple
 
-from constant import (
-    LOG_FILE_MAX_SIZE,
-    LOG_FILE_NAME,
-    PAST_LOG_FILE_FORMAT,
-    LOG_METHOD_NAME_WIDTH,
-)
+from constant import (LOG_FILE_MAX_SIZE, LOG_FILE_NAME, LOG_METHOD_NAME_WIDTH, PAST_LOG_FILE_FORMAT)
 
 
 class Logger:
@@ -16,6 +11,10 @@ class Logger:
     def __init__(self, log_dir: str = "./log"):
         self.log_dir = log_dir
         self.latest_log = os.path.join(log_dir, LOG_FILE_NAME)
+
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
+
         if not os.path.exists(self.latest_log):
             with open(self.latest_log, "w"):
                 pass
