@@ -16,7 +16,6 @@ def test_bufferManager_flow2():
 
     buffer1 = Buffer()
     buffer1.command = "W"
-    buffer1.command = "W"
     buffer1.lba = 20
     buffer1.data = "0x12341234"
 
