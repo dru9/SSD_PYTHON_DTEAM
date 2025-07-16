@@ -17,7 +17,12 @@ from constant import (
 )
 
 TWO_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.WRITE]
-ONE_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.READ, ShellCommandEnum.FULLWRITE]
+ONE_ARGS_REQUIRE_COMMANDS = [
+    ShellCommandEnum.READ,
+    ShellCommandEnum.FULLWRITE,
+    ShellCommandEnum.ERASE,
+    ShellCommandEnum.ERASE_RANGE,
+]
 
 
 class SSDReaderWriter:
@@ -122,9 +127,12 @@ class Shell:
                 ShellCommandEnum.WRITE: cls.write,
                 ShellCommandEnum.FULLREAD: cls.full_read,
                 ShellCommandEnum.FULLWRITE: cls.full_write,
+                ShellCommandEnum.ERASE: cls.erase,
+                ShellCommandEnum.ERASE_RANGE: cls.erase_range,
                 ShellCommandEnum.SCRIPT_1: cls.script_1,
                 ShellCommandEnum.SCRIPT_2: cls.script_2,
                 ShellCommandEnum.SCRIPT_3: cls.script_3,
+                ShellCommandEnum.SCRIPT_4: cls.script_4,
                 ShellCommandEnum.INVALID: lambda: print(MESSAGE_INVALID_SHELL_CMD)
             }
         return cls._command_mapping_dict[cmd]
@@ -186,6 +194,10 @@ class Shell:
         return "[Erase] Done"
 
     @classmethod
+    def erase_range(cls, start_lba: int, end_lba: int) -> str:
+        pass
+
+    @classmethod
     def script_1(cls, num_iter: int = 20) -> str:
         for n in range(num_iter):
             start_idx = n * 5
@@ -229,6 +241,10 @@ class Shell:
         return MESSAGE_PASS
 
     @classmethod
+    def script_4(cls, num_iter: int = 30) -> str:
+        pass
+
+    @classmethod
     def run(cls) -> None:
         while True:
             cmd, args = cls.shell_parser.parse()
@@ -238,7 +254,7 @@ class Shell:
 
             if cmd is None:
                 continue
-                
+
             ret = cls.execute_command(cmd, args)
             if ret is not None:
                 print(ret)
