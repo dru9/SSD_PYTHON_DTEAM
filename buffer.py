@@ -75,17 +75,17 @@ class BufferManager:
             if "empty" in fileName:
                 continue
 
-            newBuffer = Buffer()
+            new_buffer = Buffer()
             chunks = fileName.split("_")
             if len(chunks) < 4:
                 continue
 
-            newBuffer.command = chunks[1]
-            newBuffer.lba = int(chunks[2])
-            if newBuffer.command == "W":
-                newBuffer.data = chunks[3]
-            elif newBuffer.command == "E":
-                newBuffer.range = int(chunks[3])
+            new_buffer.command = chunks[1]
+            new_buffer.lba = int(chunks[2])
+            if new_buffer.command == "W":
+                new_buffer.data = chunks[3]
+            elif new_buffer.command == "E":
+                new_buffer.range = int(chunks[3])
             else:
                 continue
-            self.buffers.append(newBuffer)
+            self.buffers.append(new_buffer)
