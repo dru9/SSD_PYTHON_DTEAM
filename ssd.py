@@ -2,6 +2,7 @@ import os
 import sys
 
 from filelock import Timeout, FileLock
+
 from constant import FILENAME, FILENAME_OUT, FILENAME_LOCK, FILENAME_OUT_LOCK
 
 
@@ -51,6 +52,16 @@ class FileManager:
         self._save_to_nand_file(nand_datas)
         return True
 
+    def erase_nand_txt(self, lba, size) -> bool:
+        nand_datas = self._read_whole_contents_nand_txt()
+        current_data = nand_datas.get(lba, "")
+        if current_data == "":
+            return False
+        for each_lba in range(lba, lba + size):
+            nand_datas[each_lba] = "0x00000000"
+        self._save_to_nand_file(nand_datas)
+        return True
+
     def write_output_txt(self, contents: str):
         with self.filename_out_lock:
             with open(FILENAME_OUT, "w") as f:
@@ -74,7 +85,9 @@ class SSD:
         self.file_manager.write_output_txt("")
 
     def check_hex(self, data):
-        if len(data) != 10 or not data.startswith("0x"):
+        if len(data) != 10:
+            return False
+        if not data[:2] == "0x":
             return False
         try:
             int(data[2:], 16)
@@ -84,6 +97,12 @@ class SSD:
 
     def _index_valid(self, num):
         return num.isdigit() and int(num) >= 0 and int(num) <= 99
+
+    def _parse_int_or_empty(self, num):
+        try:
+            return int(num)
+        except ValueError:
+            return ""
 
     def execute_command(self, args):
         argument_len = len(args)
@@ -97,14 +116,29 @@ class SSD:
             return
 
         mode = args[1]
-        lba = int(args[2])
+        lba = self._parse_int_or_empty(args[2])
+        if lba == "":
+            self.file_manager.write_output_txt("ERROR")
+            print("Invalid argument")
         if mode == "W" and self.check_hex(args[3]) and argument_len == 4:
             self.write(lba, args[3])
         elif mode == "R" and argument_len == 3:
             self.read(lba)
+        elif mode == "E" and argument_len == 4:
+            size = self._parse_int_or_empty(args[3])
+            if size == "" or size < 1 or size > 10 or lba + size > 99:
+                self.file_manager.write_output_txt("ERROR")
+                print("Invalid argument")
+            else:
+                self.erase(lba, size)
         else:
             self.file_manager.write_output_txt("ERROR")
             print("Invalid argument")
+
+    def erase(self, lba, size):
+        if not self.file_manager.erase_nand_txt(lba, size):
+            self.file_manager.write_output_txt("ERROR")
+        self.file_manager.write_output_txt("")
 
 
 if __name__ == "__main__":
