@@ -1,7 +1,7 @@
 import os
 import sys
 
-from buffer import BufferManager, Buffer
+from command_buffer import BufferManager, Buffer
 from constant import FILENAME, FILENAME_OUT
 
 
