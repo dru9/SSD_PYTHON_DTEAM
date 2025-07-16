@@ -128,7 +128,12 @@ class SSD:
         else:
             self.file_manager.write_output_txt("ERROR")
             print("Invalid argument")
-
+            
+    def erase(self, lba, size):
+        if not self.file_manager.erase_nand_txt(lba, size):
+            self.file_manager.write_output_txt("ERROR")
+        self.file_manager.write_output_txt("")
+    
     def flush(self, buffers):
         for buffer in buffers:
             if buffer.command == "W":
