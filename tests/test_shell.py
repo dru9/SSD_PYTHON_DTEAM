@@ -41,8 +41,50 @@ def test_full_read_mock(file_mock, shell_mock):
 
 
 def test_full_write_mock(file_mock, shell_mock):
-    Shell.full_write(3)
-    shell_mock.assert_called_with(['python', 'ssd.py', 'W', '99', 3], text=True)
+    Shell.full_write(value="0x00000003")
+    shell_mock.assert_called_with(['python', 'ssd.py', 'W', '99', "0x00000003"], text=True)
+    file_mock.assert_called_with('ssd_output.txt', 'r')
+
+
+def test_erase_mock(file_mock, shell_mock):
+    res = Shell.erase(lba=0, size=5)
+    shell_mock.assert_called_with(['python', 'ssd.py', 'E', '0', '5'], text=True)
+    file_mock.assert_called_with('ssd_output.txt', 'r')
+    assert res == "[Erase] Done"
+
+
+def test_erase_range_mock(file_mock, shell_mock):
+    ret = Shell.erase_range(start_lba=10, end_lba=30)
+    assert shell_mock.call_count == 3
+    shell_mock.assert_called_with(['python', 'ssd.py', 'E', '30', '1'], text=True)
+    file_mock.assert_called_with('ssd_output.txt', 'r')
+    assert ret == "[Erase Range] Done"
+
+
+def test_script_1_mocker(file_mock, shell_mock):
+    Shell.script_1()
+    shell_mock.assert_called()
+    file_mock.assert_called_with('ssd_output.txt', 'r')
+
+
+def test_script_2_mocker(file_mock, shell_mock):
+    Shell.script_2()
+    shell_mock.assert_called_with(['python', 'ssd.py', 'R', '4'], text=True)
+    file_mock.assert_called_with('ssd_output.txt', 'r')
+
+
+def test_script_3_mocker(file_mock, shell_mock):
+    Shell.script_3()
+    assert shell_mock.call_count == 200 * 4
+    shell_mock.assert_called_with(['python', 'ssd.py', 'R', '99'], text=True)
+    file_mock.assert_called_with('ssd_output.txt', 'r')
+
+
+def test_script_4_mocker(file_mock, shell_mock):
+    ret = Shell.script_4()
+    assert ret == MESSAGE_PASS
+    assert shell_mock.call_count == 1 + 30 * 49 * 3
+    shell_mock.assert_called_with(['python', 'ssd.py', 'E', '98', "2"], text=True)
     file_mock.assert_called_with('ssd_output.txt', 'r')
 
 
@@ -86,6 +128,16 @@ def test_find_invalid_command(ssd_py_path):
     assert res == ShellCommandEnum.INVALID
 
 
+def test_erase(ssd_py_path):
+    ret = Shell.erase(lba=0, size=5)
+    assert ret == "[Erase] Done"
+
+
+def test_erase_range(ssd_py_path):
+    ret = Shell.erase_range(start_lba=10, end_lba=30)
+    assert ret == "[Erase Range] Done"
+
+
 def test_script_1(ssd_py_path):
     res = Shell.script_1()
     assert res == MESSAGE_PASS
@@ -99,3 +151,7 @@ def test_script_2(ssd_py_path):
 def test_script_3(ssd_py_path):
     res = Shell.script_3()
     assert res == MESSAGE_PASS
+
+
+def test_script_4(ssd_py_path):
+    assert Shell.script_4() == MESSAGE_PASS
