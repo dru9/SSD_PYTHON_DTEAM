@@ -103,6 +103,11 @@ class SSD:
             return
 
         mode = args[1]
+
+        if mode == "F":
+            buffers = self.buffer_manager.get_buffer()
+            self.flush(buffers)
+            return
         lba = int(args[2])
         if mode == "W":
             hex = args[3]
@@ -120,14 +125,14 @@ class SSD:
 
     def _args_valid_guard_clauses(self, args):
         argument_len = len(args)
-        if argument_len < 3:
-            print("At least two argument are required")
+        if argument_len < 2:
+            print("At least one argument are required")
             self.file_manager.write_output_txt("ERROR")
             return False
 
         mode = args[1]
-        if mode not in ("W", "R", "E"):
-            print("Mode should be in ('W', 'R', 'E')")
+        if mode not in ("W", "R", "E", "F"):
+            print("Mode should be in ('W', 'R', 'E', 'F')")
             self.file_manager.write_output_txt("ERROR")
             return False
 
@@ -145,6 +150,14 @@ class SSD:
             print("Mode E need lba and size")
             self.file_manager.write_output_txt("ERROR")
             return False
+
+        if mode == "F" and argument_len != 2:
+            print("Mode F need only command")
+            self.file_manager.write_output_txt("ERROR")
+            return False
+
+        if mode == "F":
+            return True
 
         lba = self._parse_int_or_empty(args[2])
 
@@ -258,8 +271,8 @@ class SSD:
                             new_buffers.append(b)
                             continue
                         if b.lba <= lba:
-                            # b.lba + range + b.range > 99 넘는 경우에도 추가하면 안돼!
-                            if b.lba + erase_size + b.range > 99:
+                            # b.lba + b.range > 100 또는 lba + erase_size > 100  넘는 경우에도 추가하면 안돼!
+                            if lba + erase_size > 100 or b.lba + b.range > 100:
                                 new_buffers.append(b)
                                 continue
 
@@ -275,8 +288,8 @@ class SSD:
                             break
 
                         if lba < b.lba:
-                            # lba + range + b.range > 99 넘는 경우에도 추가하면 안돼
-                            if lba + erase_size + b.range > 99:
+                            # lba + range  > 100 or b.lba + b.range > 100 넘는 경우에도 추가하면 안돼
+                            if lba + erase_size > 100 or b.lba + b.range > 100:
                                 new_buffers.append(b)
                                 continue
 
