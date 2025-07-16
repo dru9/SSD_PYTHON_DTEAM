@@ -165,11 +165,6 @@ class SSD:
                 self.file_manager.write_output_txt("ERROR")
                 return False
         return True
- 
-    def erase(self, lba, size):
-        if not self.file_manager.erase_nand_txt(lba, size):
-            self.file_manager.write_output_txt("ERROR")
-        self.file_manager.write_output_txt("")
     
     def flush(self, buffers):
         for buffer in buffers:
