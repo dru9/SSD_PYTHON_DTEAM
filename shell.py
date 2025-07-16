@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Optional
 
 import utils
-from commands import ReadShellCommand, WriteShellCommand
+from commands import EraseShellCommand, ReadShellCommand, WriteShellCommand
 from constant import (
     FILENAME_MAIN_SSD,
     FILENAME_OUT,
@@ -34,6 +34,19 @@ class SSDReaderWriter:
     @classmethod
     def write(cls, lba: int, value: str) -> str:
         cmd = WriteShellCommand(FILENAME_MAIN_SSD, lba, value)
+        is_ssd_run = cmd.execute()
+        if not is_ssd_run:
+            return MESSAGE_ERROR
+
+        res = cls._cache_inout()
+        if res == "":
+            return MESSAGE_DONE
+
+        return MESSAGE_ERROR
+
+    @classmethod
+    def erase(cls, lba: int, size: int) -> str:
+        cmd = EraseShellCommand(FILENAME_MAIN_SSD, lba, size)
         is_ssd_run = cmd.execute()
         if not is_ssd_run:
             return MESSAGE_ERROR
@@ -148,6 +161,29 @@ class Shell:
             for i in range(num_iter)
         ]
         return "\n".join(results)
+
+    @classmethod
+    def erase(cls, lba: int, size: int) -> str:
+        if not isinstance(lba, int):
+            return "[Erase] ERROR"
+        if not isinstance(size, int):
+            return "[Erase] ERROR"
+
+        start, end = (lba, lba+size)
+        step = 10
+        if start < 0:
+            return "[Erase] ERROR"
+        if end > 100:
+            return "[Erase] ERROR"
+
+        for i in range(start, end, step):
+            _start, _end = (i, min(i+step, end))
+            _size = _end - _start
+            ret = cls.reader_writer.erase(lba=_start, size=_size)
+            if ret == MESSAGE_ERROR:
+                return "[Erase] ERROR"
+
+        return "[Erase] Done"
 
     @classmethod
     def script_1(cls, num_iter: int = 20) -> str:
