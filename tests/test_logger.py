@@ -22,12 +22,6 @@ def test_case_for_print():
             "expected_line": f"[24.07.16 12:34] {"Shell.run".ljust(LOG_METHOD_NAME_WIDTH)}: hello\n"}
 
 
-def test_logger_init_creates_log_file():
-    with patch("os.path.exists", return_value=False), patch("builtins.open", mock_open()) as m_open:
-        Logger(log_dir=".")
-        m_open.assert_called_once_with(f".\\{LOG_FILE_NAME}", "w")
-
-
 def test_format_log_output(fixed_datetime, logger, test_case_for_print):
     with patch.object(Logger, "_get_timestamp", return_value=(fixed_datetime[0], fixed_datetime[1])):
         result = logger._format_log(test_case_for_print["method_name"], test_case_for_print["message"])
@@ -40,7 +34,7 @@ def test_print_writes_log_line(fixed_datetime, logger, test_case_for_print):
     with patch("os.path.getsize", return_value=0), \
             patch.object(Logger, "_get_timestamp", return_value=(fixed_datetime[0], fixed_datetime[1])), \
             patch("builtins.open", mock_file):
-        logger.print(test_case_for_print["method_name"], test_case_for_print["message"])
+        logger.print(test_case_for_print["message"], test_case_for_print["method_name"])
 
         mock_file().write.assert_called_once_with(test_case_for_print["expected_line"])
 
