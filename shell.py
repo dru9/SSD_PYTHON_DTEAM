@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import sys
-from typing import Optional
+import sys  # noqa
+from typing import Callable, Optional
 
 import utils
 from commands import EraseShellCommand, ReadShellCommand, WriteShellCommand
@@ -16,6 +16,7 @@ from constant import (
     MESSAGE_PASS,
     ShellCommandEnum
 )
+from logger import Logger
 
 TWO_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.WRITE]
 ONE_ARGS_REQUIRE_COMMANDS = [
@@ -26,7 +27,7 @@ ONE_ARGS_REQUIRE_COMMANDS = [
 ]
 
 
-class SSDReaderWriter:
+class SSDController:
 
     @classmethod
     def read(cls, lba: int) -> str:
@@ -114,51 +115,37 @@ class ShellParser:
         return ShellCommandEnum.INVALID
 
 
-class Shell:
-    reader_writer = SSDReaderWriter
-    shell_parser = ShellParser
-    _command_mapping_dict = None
-
-    @classmethod
-    def _command_mapper(cls, cmd: ShellCommandEnum):
-        if cls._command_mapping_dict is None:
-            cls._command_mapping_dict = {
-                ShellCommandEnum.HELP: lambda: MESSAGE_HELP,
-                ShellCommandEnum.READ: cls.read,
-                ShellCommandEnum.WRITE: cls.write,
-                ShellCommandEnum.FULLREAD: cls.full_read,
-                ShellCommandEnum.FULLWRITE: cls.full_write,
-                ShellCommandEnum.ERASE: cls.erase,
-                ShellCommandEnum.ERASE_RANGE: cls.erase_range,
-                ShellCommandEnum.SCRIPT_1: cls.script_1,
-                ShellCommandEnum.SCRIPT_2: cls.script_2,
-                ShellCommandEnum.SCRIPT_3: cls.script_3,
-                ShellCommandEnum.SCRIPT_4: cls.script_4,
-                ShellCommandEnum.INVALID: lambda: MESSAGE_INVALID_SHELL_CMD
-            }
-        return cls._command_mapping_dict[cmd]
+class CommandExecutor:
+    ssd_controller = SSDController
+    logging: Callable = Logger().print
 
     @classmethod
     def read(cls, lba: int) -> str:
         lba = int(lba)  # todo: safe convert
-        ret = cls.reader_writer.read(lba)
+        ret = cls.ssd_controller.read(lba)
         if ret == MESSAGE_ERROR:
             return "[Read] ERROR"
+
+        cls.logging("... COMPLETE")
         return f"[Read] LBA {lba:02d} : {ret}"
 
     @classmethod
     def write(cls, lba: int, value: str) -> str:
-        ret = cls.reader_writer.write(lba, value)
+        ret = cls.ssd_controller.write(lba, value)
         if ret == MESSAGE_ERROR:
             return "[Write] ERROR"
+
+        cls.logging("... COMPLETE")
         return "[Write] Done"
 
     @classmethod
     def full_write(cls, value: str):
         for lba in range(100):
-            ret = cls.reader_writer.write(lba, value)
+            ret = cls.ssd_controller.write(lba, value)
             if ret == MESSAGE_ERROR:
                 return f"[Full Write] ERROR in LBA[{lba:02d}]"
+
+        cls.logging("... COMPLETE")
         return "[Full Write] Done"
 
     @classmethod
@@ -166,15 +153,15 @@ class Shell:
         header = "[Full Read]"
         results = [header]
         results += [
-            f"LBA {i:0>2} : {cls.reader_writer.read(lba=i)}"
+            f"LBA {i:0>2} : {cls.ssd_controller.read(lba=i)}"
             for i in range(num_iter)
         ]
+        cls.logging("... COMPLETE")
         return "\n".join(results)
 
     @classmethod
     def erase(cls, lba: int, size: int) -> str:
-        is_valid_args = utils.validate_erase_args(lba, size)
-        if not is_valid_args:
+        if not utils.validate_erase_args(lba, size):
             return "[Erase] ERROR"
 
         step = 10
@@ -182,25 +169,31 @@ class Shell:
         for i in range(start, end, step):
             _start, _end = (i, min(i + step, end))
             _size = _end - _start
-            ret = cls.reader_writer.erase(lba=_start, size=_size)
+            ret = cls.ssd_controller.erase(lba=_start, size=_size)
             if ret == MESSAGE_ERROR:
                 return "[Erase] ERROR"
 
+        cls.logging("... COMPLETE")
         return "[Erase] Done"
 
     @classmethod
     def erase_range(cls, start_lba: int, end_lba: int) -> str:
-        is_valid_args = utils.validate_erase_range_args(start_lba, end_lba)
-        if not is_valid_args:
+        if not utils.validate_erase_range_args(start_lba, end_lba):
             return "[Erase Range] ERROR"
 
         erasing_size = end_lba - start_lba + 1
-
         ret = cls.erase(start_lba, erasing_size)
         if MESSAGE_ERROR in ret:
             return "[Erase Range] ERROR"
 
+        cls.logging("... COMPLETE")
         return "[Erase Range] Done"
+
+
+class ScriptExecutor:
+    ssd_controller = SSDController
+    command_executor = CommandExecutor
+    logging: Callable = Logger().print
 
     @classmethod
     def script_1(cls, num_iter: int = 20) -> str:
@@ -208,11 +201,13 @@ class Shell:
             start_idx = n * 5
             value = utils.get_random_value()
             for i in range(5):
-                if not cls.reader_writer.write(lba=start_idx + i, value=value):
+                if not cls.ssd_controller.write(lba=start_idx + i, value=value):
                     return MESSAGE_FAIL
             for i in range(5):
-                if value != cls.reader_writer.read(lba=start_idx + i):
+                if value != cls.ssd_controller.read(lba=start_idx + i):
                     return MESSAGE_FAIL
+
+        cls.logging("... COMPLETE")
         return MESSAGE_PASS
 
     @classmethod
@@ -221,17 +216,18 @@ class Shell:
         for _ in range(num_iter):
             value = utils.get_random_value()
             for lba in lba_values:
-                success = cls.reader_writer.write(lba, value)
+                success = cls.ssd_controller.write(lba, value)
                 if not success:
                     return MESSAGE_FAIL
 
             for lba in lba_values:
-                current_value = cls.reader_writer.read(lba)
+                current_value = cls.ssd_controller.read(lba)
                 if current_value == MESSAGE_ERROR:
                     return MESSAGE_FAIL
                 if current_value != value:
                     return MESSAGE_FAIL
 
+        cls.logging("... COMPLETE")
         return MESSAGE_PASS
 
     @classmethod
@@ -239,15 +235,17 @@ class Shell:
         lba_1, lba_2 = (0, 99)
         for _ in range(num_iter):
             value = utils.get_random_value()
-            cls.reader_writer.write(lba=lba_1, value=value)
-            cls.reader_writer.write(lba=lba_2, value=value)
-            if cls.reader_writer.read(lba_1) != cls.reader_writer.read(lba_2):
+            cls.ssd_controller.write(lba=lba_1, value=value)
+            cls.ssd_controller.write(lba=lba_2, value=value)
+            if cls.ssd_controller.read(lba_1) != cls.ssd_controller.read(lba_2):
                 return MESSAGE_FAIL
+
+        cls.logging("... COMPLETE")
         return MESSAGE_PASS
 
     @classmethod
     def script_4(cls, num_iter: int = 30) -> str:
-        ret = cls.erase_range(0, 2)
+        ret = cls.command_executor.erase_range(0, 2)
         if MESSAGE_ERROR in ret:
             return MESSAGE_FAIL
 
@@ -256,28 +254,59 @@ class Shell:
                 two_diff_values = utils.get_two_diff_random_value()
 
                 for val in two_diff_values:
-                    ret = cls.reader_writer.write(start_lba, val)
+                    ret = cls.command_executor.write(start_lba, val)
                     if ret == MESSAGE_ERROR:
                         return MESSAGE_FAIL
 
                 end_lba = min(start_lba + 2, 99)
-                ret = cls.erase_range(start_lba, end_lba)
+                ret = cls.command_executor.erase_range(start_lba, end_lba)
                 if MESSAGE_ERROR in ret:
                     return MESSAGE_FAIL
 
+        cls.logging("... COMPLETE")
         return MESSAGE_PASS
+
+
+class Shell:
+    logging: Callable = Logger().print
+    shell_parser = ShellParser
+    command_executor = CommandExecutor
+    script_executor = ScriptExecutor
+    _command_mapping_dict = None
+
+    @classmethod
+    def _command_mapper(cls, cmd: ShellCommandEnum):
+        if cls._command_mapping_dict is None:
+            cls._command_mapping_dict = {
+                ShellCommandEnum.HELP: lambda: MESSAGE_HELP,
+                ShellCommandEnum.READ: cls.command_executor.read,
+                ShellCommandEnum.WRITE: cls.command_executor.write,
+                ShellCommandEnum.FULLREAD: cls.command_executor.full_read,
+                ShellCommandEnum.FULLWRITE: cls.command_executor.full_write,
+                ShellCommandEnum.ERASE: cls.command_executor.erase,
+                ShellCommandEnum.ERASE_RANGE: cls.command_executor.erase_range,
+                ShellCommandEnum.SCRIPT_1: cls.script_executor.script_1,
+                ShellCommandEnum.SCRIPT_2: cls.script_executor.script_2,
+                ShellCommandEnum.SCRIPT_3: cls.script_executor.script_3,
+                ShellCommandEnum.SCRIPT_4: cls.script_executor.script_4,
+                ShellCommandEnum.INVALID: lambda: MESSAGE_INVALID_SHELL_CMD
+            }
+        return cls._command_mapping_dict[cmd]
+
+    @classmethod
+    def execute_command(cls, cmd: ShellCommandEnum, args: list) -> Optional[str]:
+        func = cls._command_mapper(cmd)
+        return func(*args)
 
     @classmethod
     def run(cls) -> None:
         while True:
             cmd, args = cls.shell_parser.parse()
-
+            cls.logging(f"Command: {cmd.name} ({args})")
             if cmd == ShellCommandEnum.EXIT:
                 break
-
             if cmd is None:
                 continue
-
             ret = cls.execute_command(cmd, args)
             if ret is not None:
                 print(ret)
@@ -296,13 +325,10 @@ class Shell:
             cmd = cmd.strip()
             print(f"{cmd:<28}___   Run...", end="", flush=True)
             cmd_enum = cls.shell_parser.find_command(cmd)
-
             if cmd_enum == ShellCommandEnum.EXIT:
                 break
-
             if cmd_enum is None:
                 continue
-
             ret = cls.execute_command(cmd_enum, [])
             if ret is not None:
                 if ret == MESSAGE_PASS:
@@ -310,11 +336,6 @@ class Shell:
                 else:
                     print("FAIL!")
                     break
-
-    @classmethod
-    def execute_command(cls, cmd: ShellCommandEnum, args: list) -> Optional[str]:
-        func = cls._command_mapper(cmd)
-        return func(*args)
 
 
 if __name__ == "__main__":
