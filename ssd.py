@@ -1,7 +1,7 @@
 import os
 import sys
 
-from filelock import Timeout, FileLock
+from filelock import FileLock
 
 from buffer import BufferManager
 from constant import FILENAME, FILENAME_OUT, FILENAME_LOCK, FILENAME_OUT_LOCK
@@ -110,14 +110,22 @@ class SSD:
             print("Invalid argument")
 
     def flush(self, buffers):
-        pass
+        for buffer in buffers:
+            if buffer.command == "W":
+                self.write(buffer.lba, buffer.data)
+            elif buffer.command == "E":
+                self.read(buffer.lba)
+            else:
+                self.file_manager.write_output_txt("ERROR")
+                print("Invalid command")
+                break
+        self.buffer_manager.set_buffer([])
 
     def _execute_command_new(self, args):
         buffers = self.buffer_manager.get_buffer()
         # flush 조건 체크
 
         # Buffer에 접근 먼저 해서 알고리즘 동작하게 하기.
-
 
         # 마지막에 rename
         self.buffer_manager.set_buffer(buffers)
