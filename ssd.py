@@ -106,12 +106,12 @@ class SSD:
         lba = int(args[2])
         if mode == "W":
             hex = args[3]
-            self.write(lba, hex)
+            self._execute_command_new(mode=mode, lba=lba, data=args[3])
         elif mode == "R":
-            self.read(lba)
+            self._execute_command_new(mode=mode, lba=lba)
         elif mode == "E":
             size = self._parse_int_or_empty(args[3])
-            self.erase(int(args[2]), size)
+            self._execute_command_new(mode=mode, lba=lba, erase_size=size)
 
     def erase(self, lba, size):
         if not self.file_manager.erase_nand_txt(lba, size):
@@ -165,7 +165,7 @@ class SSD:
                 self.file_manager.write_output_txt("ERROR")
                 return False
         return True
-    
+
     def flush(self, buffers):
         for buffer in buffers:
             if buffer.command == "W":
