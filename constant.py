@@ -16,6 +16,8 @@ class ShellCommandEnum(Enum):
 
 FILENAME = "ssd_nand.txt"
 FILENAME_OUT = "ssd_output.txt"
+FILENAME_LOCK = "ssd_nand.lock"
+FILENAME_OUT_LOCK = "ssd_output.lock"
 FILENAME_MAIN_SSD = "ssd.py"
 
 MESSAGE_DONE = "DONE"
