@@ -3,7 +3,12 @@ import os
 from datetime import datetime
 from typing import Optional, Tuple
 
-from constant import (LOG_FILE_MAX_SIZE, LOG_FILE_NAME, LOG_METHOD_NAME_WIDTH, PAST_LOG_FILE_FORMAT)
+from constant import (
+    LOG_FILE_MAX_SIZE,
+    LOG_FILE_NAME,
+    LOG_METHOD_NAME_WIDTH,
+    PAST_LOG_FILE_FORMAT
+)
 
 
 class Logger:
