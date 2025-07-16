@@ -1,9 +1,9 @@
 from __future__ import annotations
-
+import sys
 from typing import Optional
 
 import utils
-from commands import ReadShellCommand, WriteShellCommand
+from commands import EraseShellCommand, ReadShellCommand, WriteShellCommand
 from constant import (
     FILENAME_MAIN_SSD,
     FILENAME_OUT,
@@ -17,7 +17,12 @@ from constant import (
 )
 
 TWO_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.WRITE]
-ONE_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.READ, ShellCommandEnum.FULLWRITE]
+ONE_ARGS_REQUIRE_COMMANDS = [
+    ShellCommandEnum.READ,
+    ShellCommandEnum.FULLWRITE,
+    ShellCommandEnum.ERASE,
+    ShellCommandEnum.ERASE_RANGE,
+]
 
 
 class SSDReaderWriter:
@@ -34,6 +39,19 @@ class SSDReaderWriter:
     @classmethod
     def write(cls, lba: int, value: str) -> str:
         cmd = WriteShellCommand(FILENAME_MAIN_SSD, lba, value)
+        is_ssd_run = cmd.execute()
+        if not is_ssd_run:
+            return MESSAGE_ERROR
+
+        res = cls._cache_inout()
+        if res == "":
+            return MESSAGE_DONE
+
+        return MESSAGE_ERROR
+
+    @classmethod
+    def erase(cls, lba: int, size: int) -> str:
+        cmd = EraseShellCommand(FILENAME_MAIN_SSD, lba, size)
         is_ssd_run = cmd.execute()
         if not is_ssd_run:
             return MESSAGE_ERROR
@@ -101,18 +119,21 @@ class Shell:
     _command_mapping_dict = None
 
     @classmethod
-    def _command_mapper(cls, cmd):
+    def _command_mapper(cls, cmd: ShellCommandEnum):
         if cls._command_mapping_dict is None:
             cls._command_mapping_dict = {
-                ShellCommandEnum.HELP: lambda: print(MESSAGE_HELP),
+                ShellCommandEnum.HELP: lambda: MESSAGE_HELP,
                 ShellCommandEnum.READ: cls.read,
                 ShellCommandEnum.WRITE: cls.write,
                 ShellCommandEnum.FULLREAD: cls.full_read,
                 ShellCommandEnum.FULLWRITE: cls.full_write,
+                ShellCommandEnum.ERASE: cls.erase,
+                ShellCommandEnum.ERASE_RANGE: cls.erase_range,
                 ShellCommandEnum.SCRIPT_1: cls.script_1,
                 ShellCommandEnum.SCRIPT_2: cls.script_2,
                 ShellCommandEnum.SCRIPT_3: cls.script_3,
-                ShellCommandEnum.INVALID: lambda: print(MESSAGE_INVALID_SHELL_CMD)
+                ShellCommandEnum.SCRIPT_4: cls.script_4,
+                ShellCommandEnum.INVALID: lambda: MESSAGE_INVALID_SHELL_CMD
             }
         return cls._command_mapping_dict[cmd]
 
@@ -148,6 +169,35 @@ class Shell:
             for i in range(num_iter)
         ]
         return "\n".join(results)
+
+    @classmethod
+    def erase(cls, lba: int, size: int) -> str:
+        if not isinstance(lba, int):
+            return "[Erase] ERROR"
+        if not isinstance(size, int):
+            return "[Erase] ERROR"
+
+        start, end = (lba, lba+size)
+        step = 10
+        if start < 0:
+            return "[Erase] ERROR"
+        if end > 100:
+            return "[Erase] ERROR"
+        if size < 1 or size > 100:
+            return "[Erase] Error"
+
+        for i in range(start, end, step):
+            _start, _end = (i, min(i+step, end))
+            _size = _end - _start
+            ret = cls.reader_writer.erase(lba=_start, size=_size)
+            if ret == MESSAGE_ERROR:
+                return "[Erase] ERROR"
+
+        return "[Erase] Done"
+
+    @classmethod
+    def erase_range(cls, start_lba: int, end_lba: int) -> str:
+        pass
 
     @classmethod
     def script_1(cls, num_iter: int = 20) -> str:
@@ -193,6 +243,10 @@ class Shell:
         return MESSAGE_PASS
 
     @classmethod
+    def script_4(cls, num_iter: int = 30) -> str:
+        pass
+
+    @classmethod
     def run(cls) -> None:
         while True:
             cmd, args = cls.shell_parser.parse()
@@ -202,16 +256,49 @@ class Shell:
 
             if cmd is None:
                 continue
-                
+
             ret = cls.execute_command(cmd, args)
             if ret is not None:
                 print(ret)
 
     @classmethod
-    def execute_command(cls, cmd: str, args: list) -> Optional[str]:
+    def runner(cls, cmd_file: str) -> None:
+        try:
+            with open(cmd_file, "r") as f:
+                cmds = f.readlines()
+
+        except FileNotFoundError:
+            print(MESSAGE_ERROR)
+            return
+
+        for cmd in cmds:
+            cmd = cmd.strip()
+            print(f"{cmd:<28}___   Run...", end="", flush=True)
+            cmd_enum = cls.shell_parser.find_command(cmd)
+
+            if cmd_enum == ShellCommandEnum.EXIT:
+                break
+
+            if cmd_enum is None:
+                continue
+
+            ret = cls.execute_command(cmd_enum, [])
+            if ret is not None:
+                if ret == MESSAGE_PASS:
+                    print("Pass")
+                else:
+                    print("FAIL!")
+                    break
+
+    @classmethod
+    def execute_command(cls, cmd: ShellCommandEnum, args: list) -> Optional[str]:
         func = cls._command_mapper(cmd)
         return func(*args)
 
 
 if __name__ == "__main__":
-    Shell.run()
+    if len(sys.argv) == 2:
+        cmd_file = sys.argv[1]
+        Shell.runner(cmd_file)
+    else:
+        Shell.run()

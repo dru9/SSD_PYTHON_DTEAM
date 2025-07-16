@@ -6,19 +6,25 @@ class ShellCommandEnum(Enum):
     READ = "read"
     FULLWRITE = "fullwrite"
     FULLREAD = "fullread"
+    ERASE = "erase"
+    ERASE_RANGE = "erase_range"
     HELP = "help"
     EXIT = "exit"
     SCRIPT_1 = "1_FullWriteAndReadCompare"
     SCRIPT_2 = "2_PartialLBAWrite"
     SCRIPT_3 = "3_WriteReadAging"
+    SCRIPT_4 = "4_EraseAndWriteAging"
     INVALID = "invalid"
 
 
 FILENAME = "ssd_nand.txt"
 FILENAME_OUT = "ssd_output.txt"
-FILENAME_LOCK = "ssd_nand.lock"
-FILENAME_OUT_LOCK = "ssd_output.lock"
 FILENAME_MAIN_SSD = "ssd.py"
+
+LOG_FILE_MAX_SIZE = 10 * 1024
+LOG_FILE_NAME = "latest.log"
+LOG_METHOD_NAME_WIDTH = 30
+PAST_LOG_FILE_FORMAT = "until_%y%m%d_%Hh_%Mm_%Ss.zip"
 
 MESSAGE_DONE = "DONE"
 MESSAGE_ERROR = "ERROR"

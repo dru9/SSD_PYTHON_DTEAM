@@ -43,3 +43,13 @@ class WriteShellCommand(ShellCommand):
 
     def execute(self) -> bool:
         return self.executor.run('python', [self.ssd_path, 'W', str(self.lba), self.value])
+
+
+class EraseShellCommand(ShellCommand):
+    def __init__(self, ssd_path: str, lba: int, size: int):
+        super().__init__(ssd_path)
+        self.lba = lba
+        self.size = size
+
+    def execute(self) -> bool:
+        return self.executor.run('python', [self.ssd_path, 'E', str(self.lba), str(self.size)])
