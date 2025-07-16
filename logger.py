@@ -2,6 +2,7 @@ import inspect
 import os
 from datetime import datetime
 from typing import Optional, Tuple
+import glob
 
 from constant import (
     LOG_FILE_MAX_SIZE,
@@ -41,6 +42,18 @@ class Logger:
             os.rename(self.latest_log, new_path)
             with open(self.latest_log, "w"):
                 pass
+
+            self._rename_log_files([new_name, "latest.log"])
+
+
+    def _rename_log_files(self, exclude_files):
+        log_files = glob.glob(os.path.join(self.log_dir, "*.log"))
+        exclude_files_set = set(exclude_files)
+        for log_file in log_files:
+            if os.path.basename(log_file) not in exclude_files_set:
+                new_name = log_file.replace(".log", ".zip")
+                os.rename(log_file, new_name)
+                print(f"Renamed {log_file} to {new_name}")
 
     def print(self, message: str, fn_name: Optional[str] = None) -> None:
         self._rollover_if_needed()

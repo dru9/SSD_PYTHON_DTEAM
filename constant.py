@@ -24,7 +24,7 @@ FILENAME_MAIN_SSD = "ssd.py"
 LOG_FILE_MAX_SIZE = 10 * 1024
 LOG_FILE_NAME = "latest.log"
 LOG_METHOD_NAME_WIDTH = 30
-PAST_LOG_FILE_FORMAT = "until_%y%m%d_%Hh_%Mm_%Ss.zip"
+PAST_LOG_FILE_FORMAT = "until_%y%m%d_%Hh_%Mm_%Ss.log"
 
 MESSAGE_DONE = "DONE"
 MESSAGE_ERROR = "ERROR"
