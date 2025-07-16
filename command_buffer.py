@@ -6,7 +6,7 @@ BUFFER_FOLDER = "./buffer"
 
 
 class Buffer:
-    def __init__(self, command, lba, data, range):
+    def __init__(self, command= '', lba=0, data='', range= 0):
         self.command = command
         self.lba = lba
         self.data = data  # Write 용
