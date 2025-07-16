@@ -6,11 +6,11 @@ BUFFER_FOLDER = "./buffer"
 
 
 class Buffer:
-    def __init__(self):
-        self.command = ''
-        self.lba = 0
-        self.data = ''  # Write 용
-        self.range = 0  # Erase 용
+    def __init__(self, command, lba, data, range):
+        self.command = command
+        self.lba = lba
+        self.data = data  # Write 용
+        self.range = range  # Erase 용
 
     def to_string(self, idx):
         if self.command == 'W':
@@ -75,13 +75,11 @@ class BufferManager:
             if "empty" in fileName:
                 continue
 
-            new_buffer = Buffer()
             chunks = fileName.split("_")
             if len(chunks) < 4:
                 continue
 
-            new_buffer.command = chunks[1]
-            new_buffer.lba = int(chunks[2])
+            new_buffer = Buffer(command=chunks[1], lba=int(chunks[2]), data='', range=0)
             if new_buffer.command == "W":
                 new_buffer.data = chunks[3]
             elif new_buffer.command == "E":
