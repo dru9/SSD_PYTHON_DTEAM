@@ -110,9 +110,12 @@ class Shell:
                 ShellCommandEnum.WRITE: cls.write,
                 ShellCommandEnum.FULLREAD: cls.full_read,
                 ShellCommandEnum.FULLWRITE: cls.full_write,
+                ShellCommandEnum.ERASE: cls.erase,
+                ShellCommandEnum.ERASE_RANGE: cls.erase_range,
                 ShellCommandEnum.SCRIPT_1: cls.script_1,
                 ShellCommandEnum.SCRIPT_2: cls.script_2,
                 ShellCommandEnum.SCRIPT_3: cls.script_3,
+                ShellCommandEnum.SCRIPT_4: cls.script_4,
                 ShellCommandEnum.INVALID: lambda: print(MESSAGE_INVALID_SHELL_CMD)
             }
         return cls._command_mapping_dict[cmd]
