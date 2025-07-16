@@ -101,10 +101,10 @@ class Shell:
     _command_mapping_dict = None
 
     @classmethod
-    def _command_mapper(cls, cmd):
+    def _command_mapper(cls, cmd: ShellCommandEnum):
         if cls._command_mapping_dict is None:
             cls._command_mapping_dict = {
-                ShellCommandEnum.HELP: lambda: print(MESSAGE_HELP),
+                ShellCommandEnum.HELP: lambda: MESSAGE_HELP,
                 ShellCommandEnum.READ: cls.read,
                 ShellCommandEnum.WRITE: cls.write,
                 ShellCommandEnum.FULLREAD: cls.full_read,
@@ -112,7 +112,7 @@ class Shell:
                 ShellCommandEnum.SCRIPT_1: cls.script_1,
                 ShellCommandEnum.SCRIPT_2: cls.script_2,
                 ShellCommandEnum.SCRIPT_3: cls.script_3,
-                ShellCommandEnum.INVALID: lambda: print(MESSAGE_INVALID_SHELL_CMD)
+                ShellCommandEnum.INVALID: lambda: MESSAGE_INVALID_SHELL_CMD
             }
         return cls._command_mapping_dict[cmd]
 
@@ -202,13 +202,13 @@ class Shell:
 
             if cmd is None:
                 continue
-                
+
             ret = cls.execute_command(cmd, args)
             if ret is not None:
                 print(ret)
 
     @classmethod
-    def execute_command(cls, cmd: str, args: list) -> Optional[str]:
+    def execute_command(cls, cmd: ShellCommandEnum, args: list) -> Optional[str]:
         func = cls._command_mapper(cmd)
         return func(*args)
 
