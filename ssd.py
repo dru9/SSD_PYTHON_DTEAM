@@ -268,7 +268,7 @@ class SSD:
                                 is_need_append_new_buffer = False
                                 break
 
-                            b.range = lba + erase_size - 1 - b.lba
+                            b.range = lba + erase_size - b.lba
                             new_buffers += buffers[i + 1:]
                             new_buffers.append(b)
                             is_need_append_new_buffer = False

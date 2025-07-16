@@ -2,6 +2,7 @@ from unittest.mock import mock_open, patch, call
 
 import pytest
 
+from command_buffer import BufferManager, Buffer
 from constant import FILENAME, FILENAME_OUT
 from ssd import SSD, FileManager
 
