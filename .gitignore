@@ -7,3 +7,5 @@ ssd_nand.txt
 ssd_output.txt
 *.log
 *.zip
+*.lock
+*.toml
