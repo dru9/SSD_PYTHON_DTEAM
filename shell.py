@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import sys
 from typing import Optional
 
 import utils
@@ -208,10 +208,42 @@ class Shell:
                 print(ret)
 
     @classmethod
+    def runner(cls, cmd_file: str) -> None:
+        try:
+            with open(cmd_file, "r") as f:
+                cmds = f.readlines()
+
+        except FileNotFoundError:
+            print(MESSAGE_ERROR)
+            return
+
+        for cmd in cmds:
+            cmd = cmd.strip()
+            cmd_enum = cls.shell_parser.find_command(cmd)
+
+            if cmd_enum == ShellCommandEnum.EXIT:
+                break
+
+            if cmd_enum is None:
+                continue
+
+            ret = cls.execute_command(cmd_enum, [])
+            if ret is not None:
+                if ret == MESSAGE_PASS:
+                    print(cmd, "___   Run...Pass")
+                else:
+                    print(cmd, "___   Run...FAIL!")
+                    break
+
+    @classmethod
     def execute_command(cls, cmd: ShellCommandEnum, args: list) -> Optional[str]:
         func = cls._command_mapper(cmd)
         return func(*args)
 
 
 if __name__ == "__main__":
-    Shell.run()
+    if len(sys.argv) == 2:
+        cmd_file = sys.argv[1]
+        Shell.runner(cmd_file)
+    else:
+        Shell.run()
