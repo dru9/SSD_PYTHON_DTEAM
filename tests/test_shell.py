@@ -41,8 +41,8 @@ def test_full_read_mock(file_mock, shell_mock):
 
 
 def test_full_write_mock(file_mock, shell_mock):
-    Shell.full_write(3)
-    shell_mock.assert_called_with(['python', 'ssd.py', 'W', '99', 3], text=True)
+    Shell.full_write(value="0x00000003")
+    shell_mock.assert_called_with(['python', 'ssd.py', 'W', '99', "0x00000003"], text=True)
     file_mock.assert_called_with('ssd_output.txt', 'r')
 
 
