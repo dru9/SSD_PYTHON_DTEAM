@@ -109,7 +109,7 @@ class SSD:
             self.file_manager.write_output_txt("ERROR")
             print("Invalid argument")
 
-    def flush(self):
+    def flush(self, buffers):
         pass
 
     def _execute_command_new(self, args):
