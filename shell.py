@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys
-from typing import Optional
+from typing import Callable, Optional
 
 import utils
 from commands import EraseShellCommand, ReadShellCommand, WriteShellCommand
@@ -16,6 +16,8 @@ from constant import (
     MESSAGE_PASS,
     ShellCommandEnum
 )
+from logger import Logger
+
 
 TWO_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.WRITE]
 ONE_ARGS_REQUIRE_COMMANDS = [
@@ -118,6 +120,7 @@ class Shell:
     reader_writer = SSDReaderWriter
     shell_parser = ShellParser
     _command_mapping_dict = None
+    logging: Callable = Logger().print
 
     @classmethod
     def _command_mapper(cls, cmd: ShellCommandEnum):
@@ -144,6 +147,8 @@ class Shell:
         ret = cls.reader_writer.read(lba)
         if ret == MESSAGE_ERROR:
             return "[Read] ERROR"
+
+        cls.logging("... COMPLETE")
         return f"[Read] LBA {lba:02d} : {ret}"
 
     @classmethod
@@ -151,6 +156,7 @@ class Shell:
         ret = cls.reader_writer.write(lba, value)
         if ret == MESSAGE_ERROR:
             return "[Write] ERROR"
+        cls.logging("... COMPLETE")
         return "[Write] Done"
 
     @classmethod
@@ -159,6 +165,8 @@ class Shell:
             ret = cls.reader_writer.write(lba, value)
             if ret == MESSAGE_ERROR:
                 return f"[Full Write] ERROR in LBA[{lba:02d}]"
+
+        cls.logging("... COMPLETE")
         return "[Full Write] Done"
 
     @classmethod
@@ -169,6 +177,7 @@ class Shell:
             f"LBA {i:0>2} : {cls.reader_writer.read(lba=i)}"
             for i in range(num_iter)
         ]
+        cls.logging("... COMPLETE")
         return "\n".join(results)
 
     @classmethod
@@ -186,6 +195,7 @@ class Shell:
             if ret == MESSAGE_ERROR:
                 return "[Erase] ERROR"
 
+        cls.logging("... COMPLETE")
         return "[Erase] Done"
 
     @classmethod
@@ -195,11 +205,11 @@ class Shell:
             return "[Erase Range] ERROR"
 
         erasing_size = end_lba - start_lba + 1
-
         ret = cls.erase(start_lba, erasing_size)
         if MESSAGE_ERROR in ret:
             return "[Erase Range] ERROR"
 
+        cls.logging("... COMPLETE")
         return "[Erase Range] Done"
 
     @classmethod
@@ -213,6 +223,7 @@ class Shell:
             for i in range(5):
                 if value != cls.reader_writer.read(lba=start_idx + i):
                     return MESSAGE_FAIL
+        cls.logging("... COMPLETE")
         return MESSAGE_PASS
 
     @classmethod
@@ -271,13 +282,11 @@ class Shell:
     def run(cls) -> None:
         while True:
             cmd, args = cls.shell_parser.parse()
-
+            cls.logging(f"Command: {cmd.name} ({args})")
             if cmd == ShellCommandEnum.EXIT:
                 break
-
             if cmd is None:
                 continue
-
             ret = cls.execute_command(cmd, args)
             if ret is not None:
                 print(ret)
@@ -296,13 +305,10 @@ class Shell:
             cmd = cmd.strip()
             print(f"{cmd:<28}___   Run...", end="", flush=True)
             cmd_enum = cls.shell_parser.find_command(cmd)
-
             if cmd_enum == ShellCommandEnum.EXIT:
                 break
-
             if cmd_enum is None:
                 continue
-
             ret = cls.execute_command(cmd_enum, [])
             if ret is not None:
                 if ret == MESSAGE_PASS:
