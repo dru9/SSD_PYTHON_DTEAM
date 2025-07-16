@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from typing import Optional
 
 import utils
@@ -317,9 +318,8 @@ class Shell:
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) == 2:
-    #     cmd_file = sys.argv[1]
-    #     Shell.runner(cmd_file)
-    # else:
-    #     Shell.run()
-    Shell.script_4()
+    if len(sys.argv) == 2:
+        cmd_file = sys.argv[1]
+        Shell.runner(cmd_file)
+    else:
+        Shell.run()
