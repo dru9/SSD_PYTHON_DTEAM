@@ -137,9 +137,28 @@ def test_filemanager_write_file(mock_file):
     mock_file.assert_called_with('ssd_output.txt', 'w')
 
 
-@patch('builtins.open', new_callable=mock_open)
-def test_filemanager_read_file(mock_file):
-    lba = 11
-    file_manager = FileManager()
-    result = file_manager.read_nand_txt(lba)
-    mock_file.assert_called_with(FILENAME, 'r')
+def test_erase_replace_value_as_zero():
+    ssd = SSD(FileManager())
+    initial_file_data = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n'
+    expected = '0\t0x11111111\n1\t0x00000000\n2\t0x00000000\n'
+    expected_lines = expected.splitlines(keepends=True)
+
+    mock_file = mock_open(read_data=initial_file_data)
+
+    with patch('builtins.open', mock_file), patch.object(FileManager, 'write_output_txt'):
+        args = [None, "E", "1", "2"]
+        ssd.execute_command(args)
+
+        write_calls = mock_file().write.call_args_list
+
+        expected_calls = [call(line) for line in expected_lines]
+        assert write_calls == expected_calls
+
+
+def test_execute_command_when_erase_size_is_out_of_range_should_write_error():
+    run_execute_command_and_assert([None, "E", "-1"], 'w', 'ERROR')
+    run_execute_command_and_assert([None, "E", "0", "11"], 'w', 'ERROR')
+    run_execute_command_and_assert([None, "E", "0", "0"], 'w', 'ERROR')
+    run_execute_command_and_assert([None, "E", "98", "5"], 'w', 'ERROR')
+    run_execute_command_and_assert([None, "E", "STR"], 'w', 'ERROR')
+    run_execute_command_and_assert([None, "E", "0", "HAHA"], 'w', 'ERROR')
