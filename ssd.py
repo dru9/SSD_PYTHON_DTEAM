@@ -96,40 +96,72 @@ class SSD:
             return ""
 
     def execute_command(self, args):
-        argument_len = len(args)
-        if argument_len < 3:
-            print("At least two argument are required")
-            self.file_manager.write_output_txt("ERROR")
-            return
-        if not self._index_valid(args[2]):
-            print("The index should be an integer among 0 ~ 99")
-            self.file_manager.write_output_txt("ERROR")
+        if not self._args_valid_guard_clauses(args):
             return
 
         mode = args[1]
-        lba = self._parse_int_or_empty(args[2])
-        if lba == "":
-            self.file_manager.write_output_txt("ERROR")
-            print("Invalid argument")
-        if mode == "W" and self.check_hex(args[3]) and argument_len == 4:
-            self.write(lba, args[3])
-        elif mode == "R" and argument_len == 3:
+        lba = int(args[2])
+        if mode == "W":
+            hex = args[3]
+            self.write(lba, hex)
+        elif mode == "R":
             self.read(lba)
-        elif mode == "E" and argument_len == 4:
+        elif mode == "E":
             size = self._parse_int_or_empty(args[3])
-            if size == "" or size < 1 or size > 10 or lba + size > 100:
-                self.file_manager.write_output_txt("ERROR")
-                print("Invalid argument")
-            else:
-                self.erase(lba, size)
-        else:
-            self.file_manager.write_output_txt("ERROR")
-            print("Invalid argument")
+            self.erase(int(args[2]), size)
 
     def erase(self, lba, size):
         if not self.file_manager.erase_nand_txt(lba, size):
             self.file_manager.write_output_txt("ERROR")
         self.file_manager.write_output_txt("")
+
+    def _args_valid_guard_clauses(self, args):
+        argument_len = len(args)
+        if argument_len < 3:
+            print("At least two argument are required")
+            self.file_manager.write_output_txt("ERROR")
+            return False
+
+        mode = args[1]
+        if mode not in ("W", "R", "E"):
+            print("Mode should be in ('W', 'R', 'E')")
+            self.file_manager.write_output_txt("ERROR")
+            return False
+
+        if mode == "W" and argument_len != 4:
+            print("Mode W need lba and value")
+            self.file_manager.write_output_txt("ERROR")
+            return False
+
+        if mode == "R" and argument_len != 3:
+            print("Mode R need lba")
+            self.file_manager.write_output_txt("ERROR")
+            return False
+
+        if mode == "E" and argument_len != 4:
+            print("Mode E need lba and size")
+            self.file_manager.write_output_txt("ERROR")
+            return False
+
+        lba = self._parse_int_or_empty(args[2])
+
+        if lba == "" or not self._index_valid(args[2]):
+            print("The index should be an integer among 0 ~ 99")
+            self.file_manager.write_output_txt("ERROR")
+            return False
+
+        if mode == "W" and not self.check_hex(args[3]):
+            print("Value should to be hex string")
+            self.file_manager.write_output_txt("ERROR")
+            return False
+
+        if mode == "E":
+            size = self._parse_int_or_empty(args[3])
+            if size == "" or size < 1 or size > 10 or lba + size > 100:
+                print("Size should be integer among 1 ~ 10 and lba + size must be smaller than 101")
+                self.file_manager.write_output_txt("ERROR")
+                return False
+        return True
 
 
 if __name__ == "__main__":
