@@ -65,6 +65,11 @@ class BufferManager:
             file = Path(filepath)
             file.touch()
 
+        for empty_idx in range(len(self.buffers) + 1, BUFFER_INDEX + 1):
+            filepath = BUFFER_FOLDER + "/" + str(empty_idx) + "_empty"
+            file = Path(filepath)
+            file.touch()
+
     def _get_files_to_buffers(self):
         # ./buffer directory 내의 buffer 파일 name가져와서 self.buffers에 등록하는 역할
         self.buffers = []  # 비우고 시작
