@@ -135,3 +135,11 @@ def test_filemanager_write_file(mock_file):
     file_manager = FileManager()
     result = file_manager.write_output_txt("ERROR")
     mock_file.assert_called_with('ssd_output.txt', 'w')
+
+
+@patch('builtins.open', new_callable=mock_open)
+def test_filemanager_read_file(mock_file):
+    lba = 11
+    file_manager = FileManager()
+    result = file_manager.read_nand_txt(lba)
+    mock_file.assert_called_with(FILENAME, 'r')
