@@ -1,13 +1,12 @@
 import os
 from datetime import datetime
+from constant import LOG_FILE_MAX_SIZE, LOG_FILE_NAME, PAST_LOG_FILE_FORMAT, LOG_METHOD_NAME_WIDTH
 
 
 class Logger:
-    MAX_SIZE = 10 * 1024
-
     def __init__(self, log_dir="."):
         self.log_dir = log_dir
-        self.latest_log = os.path.join(log_dir, "latest.log")
+        self.latest_log = os.path.join(log_dir, LOG_FILE_NAME)
         if not os.path.exists(self.latest_log):
             with open(self.latest_log, "w"):
                 pass
@@ -18,13 +17,13 @@ class Logger:
 
     def _format_log(self, method_name, message):
         timestamp_str, _ = self._get_timestamp()
-        method_name_padded = method_name.ljust(20)
+        method_name_padded = method_name.ljust(LOG_METHOD_NAME_WIDTH)
         return f"[{timestamp_str}] {method_name_padded}: {message}\n"
 
     def _rollover_if_needed(self):
-        if os.path.getsize(self.latest_log) > self.MAX_SIZE:
+        if os.path.getsize(self.latest_log) > LOG_FILE_MAX_SIZE:
             _, now = self._get_timestamp()
-            new_name = now.strftime("until_%y%m%d_%Hh_%Mm_%Ss.log")
+            new_name = now.strftime(PAST_LOG_FILE_FORMAT)
             new_path = os.path.join(self.log_dir, new_name)
             os.rename(self.latest_log, new_path)
 
