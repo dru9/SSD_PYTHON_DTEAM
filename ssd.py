@@ -2,6 +2,8 @@ import os
 import sys
 
 from filelock import Timeout, FileLock
+
+from buffer import BufferManager
 from constant import FILENAME, FILENAME_OUT, FILENAME_LOCK, FILENAME_OUT_LOCK
 
 
@@ -60,6 +62,7 @@ class FileManager:
 class SSD:
     def __init__(self, file_manager):
         self.file_manager = file_manager
+        self.buffer_manager = BufferManager()
 
     def read(self, lba):
         read_value = self.file_manager.read_nand_txt(lba)
@@ -105,6 +108,19 @@ class SSD:
         else:
             self.file_manager.write_output_txt("ERROR")
             print("Invalid argument")
+
+    def flush(self):
+        pass
+
+    def _execute_command_new(self, args):
+        buffers = self.buffer_manager.get_buffer()
+        # flush 조건 체크
+
+        # Buffer에 접근 먼저 해서 알고리즘 동작하게 하기.
+
+
+        # 마지막에 rename
+        self.buffer_manager.set_buffer(buffers)
 
 
 if __name__ == "__main__":
