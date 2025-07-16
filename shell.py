@@ -1,5 +1,5 @@
 from __future__ import annotations
-
+import sys
 from typing import Optional
 
 import utils
@@ -119,10 +119,10 @@ class Shell:
     _command_mapping_dict = None
 
     @classmethod
-    def _command_mapper(cls, cmd):
+    def _command_mapper(cls, cmd: ShellCommandEnum):
         if cls._command_mapping_dict is None:
             cls._command_mapping_dict = {
-                ShellCommandEnum.HELP: lambda: print(MESSAGE_HELP),
+                ShellCommandEnum.HELP: lambda: MESSAGE_HELP,
                 ShellCommandEnum.READ: cls.read,
                 ShellCommandEnum.WRITE: cls.write,
                 ShellCommandEnum.FULLREAD: cls.full_read,
@@ -133,7 +133,7 @@ class Shell:
                 ShellCommandEnum.SCRIPT_2: cls.script_2,
                 ShellCommandEnum.SCRIPT_3: cls.script_3,
                 ShellCommandEnum.SCRIPT_4: cls.script_4,
-                ShellCommandEnum.INVALID: lambda: print(MESSAGE_INVALID_SHELL_CMD)
+                ShellCommandEnum.INVALID: lambda: MESSAGE_INVALID_SHELL_CMD
             }
         return cls._command_mapping_dict[cmd]
 
@@ -262,10 +262,43 @@ class Shell:
                 print(ret)
 
     @classmethod
-    def execute_command(cls, cmd: str, args: list) -> Optional[str]:
+    def runner(cls, cmd_file: str) -> None:
+        try:
+            with open(cmd_file, "r") as f:
+                cmds = f.readlines()
+
+        except FileNotFoundError:
+            print(MESSAGE_ERROR)
+            return
+
+        for cmd in cmds:
+            cmd = cmd.strip()
+            print(f"{cmd:<28}___   Run...", end="", flush=True)
+            cmd_enum = cls.shell_parser.find_command(cmd)
+
+            if cmd_enum == ShellCommandEnum.EXIT:
+                break
+
+            if cmd_enum is None:
+                continue
+
+            ret = cls.execute_command(cmd_enum, [])
+            if ret is not None:
+                if ret == MESSAGE_PASS:
+                    print("Pass")
+                else:
+                    print("FAIL!")
+                    break
+
+    @classmethod
+    def execute_command(cls, cmd: ShellCommandEnum, args: list) -> Optional[str]:
         func = cls._command_mapper(cmd)
         return func(*args)
 
 
 if __name__ == "__main__":
-    Shell.run()
+    if len(sys.argv) == 2:
+        cmd_file = sys.argv[1]
+        Shell.runner(cmd_file)
+    else:
+        Shell.run()
