@@ -1,5 +1,7 @@
 import os
 import sys
+
+from buffer import BufferManager
 from constant import FILENAME, FILENAME_OUT
 
 
@@ -62,6 +64,7 @@ class FileManager:
 class SSD:
     def __init__(self, file_manager):
         self.file_manager = file_manager
+        self.buffer_manager = BufferManager()
 
     def read(self, lba):
         read_value = self.file_manager.read_nand_txt(lba)
@@ -162,7 +165,33 @@ class SSD:
                 self.file_manager.write_output_txt("ERROR")
                 return False
         return True
+ 
+    def erase(self, lba, size):
+        if not self.file_manager.erase_nand_txt(lba, size):
+            self.file_manager.write_output_txt("ERROR")
+        self.file_manager.write_output_txt("")
+    
+    def flush(self, buffers):
+        for buffer in buffers:
+            if buffer.command == "W":
+                self.write(buffer.lba, buffer.data)
+            elif buffer.command == "E":
+                self.read(buffer.lba)
+            else:
+                self.file_manager.write_output_txt("ERROR")
+                print("Invalid command")
+                break
+        self.buffer_manager.set_buffer([])
 
+    def _execute_command_new(self, args):
+        buffers = self.buffer_manager.get_buffer()
+        # flush 조건 체크
+
+        # Buffer에 접근 먼저 해서 알고리즘 동작하게 하기.
+
+        # 마지막에 rename
+        self.buffer_manager.set_buffer(buffers)
+        
 
 if __name__ == "__main__":
     ssd = SSD(FileManager())

@@ -1,8 +1,11 @@
 /.venv/
 /.idea/
+/buffer/
 __pycache__
 **/__pycache__/
 ssd_nand.txt
 ssd_output.txt
 *.log
 *.zip
+*.lock
+*.toml

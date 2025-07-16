@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import sys
 from typing import Optional
 
@@ -172,22 +173,14 @@ class Shell:
 
     @classmethod
     def erase(cls, lba: int, size: int) -> str:
-        if not isinstance(lba, int):
-            return "[Erase] ERROR"
-        if not isinstance(size, int):
+        is_valid_args = utils.validate_erase_args(lba, size)
+        if not is_valid_args:
             return "[Erase] ERROR"
 
-        start, end = (lba, lba+size)
         step = 10
-        if start < 0:
-            return "[Erase] ERROR"
-        if end > 100:
-            return "[Erase] ERROR"
-        if size < 1 or size > 100:
-            return "[Erase] Error"
-
+        start, end = (lba, lba + size)
         for i in range(start, end, step):
-            _start, _end = (i, min(i+step, end))
+            _start, _end = (i, min(i + step, end))
             _size = _end - _start
             ret = cls.reader_writer.erase(lba=_start, size=_size)
             if ret == MESSAGE_ERROR:
@@ -197,7 +190,17 @@ class Shell:
 
     @classmethod
     def erase_range(cls, start_lba: int, end_lba: int) -> str:
-        pass
+        is_valid_args = utils.validate_erase_range_args(start_lba, end_lba)
+        if not is_valid_args:
+            return "[Erase Range] ERROR"
+
+        erasing_size = end_lba - start_lba + 1
+
+        ret = cls.erase(start_lba, erasing_size)
+        if MESSAGE_ERROR in ret:
+            return "[Erase Range] ERROR"
+
+        return "[Erase Range] Done"
 
     @classmethod
     def script_1(cls, num_iter: int = 20) -> str:
@@ -244,7 +247,25 @@ class Shell:
 
     @classmethod
     def script_4(cls, num_iter: int = 30) -> str:
-        pass
+        ret = cls.erase_range(0, 2)
+        if MESSAGE_ERROR in ret:
+            return MESSAGE_FAIL
+
+        for _ in range(num_iter):
+            for start_lba in range(2, 99, 2):
+                two_diff_values = utils.get_two_diff_random_value()
+
+                for val in two_diff_values:
+                    ret = cls.reader_writer.write(start_lba, val)
+                    if ret == MESSAGE_ERROR:
+                        return MESSAGE_FAIL
+
+                end_lba = min(start_lba + 2, 99)
+                ret = cls.erase_range(start_lba, end_lba)
+                if MESSAGE_ERROR in ret:
+                    return MESSAGE_FAIL
+
+        return MESSAGE_PASS
 
     @classmethod
     def run(cls) -> None:
