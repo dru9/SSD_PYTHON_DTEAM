@@ -1,7 +1,7 @@
 import os
 import sys
 
-from buffer import BufferManager
+from command_buffer import BufferManager, Buffer
 from constant import FILENAME, FILENAME_OUT
 
 
@@ -106,12 +106,12 @@ class SSD:
         lba = int(args[2])
         if mode == "W":
             hex = args[3]
-            self.write(lba, hex)
+            self._execute_command_new(mode=mode, lba=lba, data=args[3])
         elif mode == "R":
-            self.read(lba)
+            self._execute_command_new(mode=mode, lba=lba)
         elif mode == "E":
             size = self._parse_int_or_empty(args[3])
-            self.erase(int(args[2]), size)
+            self._execute_command_new(mode=mode, lba=lba, erase_size=size)
 
     def erase(self, lba, size):
         if not self.file_manager.erase_nand_txt(lba, size):
@@ -165,7 +165,7 @@ class SSD:
                 self.file_manager.write_output_txt("ERROR")
                 return False
         return True
-    
+
     def flush(self, buffers):
         for buffer in buffers:
             if buffer.command == "W":
@@ -178,15 +178,118 @@ class SSD:
                 break
         self.buffer_manager.set_buffer([])
 
-    def _execute_command_new(self, args):
+    def _execute_command_new(self, mode, lba: int, data='', erase_size=0):
         buffers = self.buffer_manager.get_buffer()
         # flush 조건 체크
+        if len(buffers) == 5:
+            self.flush(buffers)
+            new_buffers = [Buffer(mode, lba, data, erase_size)]
+            self.buffer_manager.set_buffer(new_buffers)
+            return
 
         # Buffer에 접근 먼저 해서 알고리즘 동작하게 하기.
+        # R
+        if mode == "R":
+            for i, b in enumerate(buffers):
+                if b.command == "W":
+                    if b.lba == lba:
+                        self.file_manager.write_output_txt(b.data)
+                        return
+                if b.command == "E":
+                    if lba >= b.lba and lba < b.lba + b.range:
+                        self.file_manager.write_output_txt("0x00000000")
+                        return
+            self.read(lba)
+            return
+        # W
+        new_buffers = []
+        new_buffer = Buffer(mode, lba, data, erase_size)
+        is_need_append_new_buffer = True
+        if mode == "W":
+            for i, b in enumerate(buffers):
+                # 1. W인 경우
+                if b.command == "W":
+                    if b.lba != lba:
+                        new_buffers.append(b)
+                        continue
+                    new_buffers += buffers[i + 1:]
+                    new_buffers.append(new_buffer)
+                    is_need_append_new_buffer = False
+                    break
+                # 2. E인 경우
+                if b.command == "E":
+                    if b.lba == lba:
+                        if b.range == 1:
+                            new_buffers += buffers[i + 1:]
+                            new_buffers.append(new_buffer)
+                            is_need_append_new_buffer = False
+                            break
+                        b.lba += 1
+                        b.range -= 1
+                    elif (b.lba + b.range - 1) == lba:
+                        b.range -= 1
+                    new_buffers.append(b)
+                    continue
+        # E
+        if mode == "E":
+            for i, b in enumerate(buffers):
+                # 1. W인 경우
+                if b.command == "W":
+                    if b.lba >= lba and b.lba < lba + erase_size:
+                        new_buffers += buffers[i + 1:]
+                        new_buffers.append(new_buffer)
+                        is_need_append_new_buffer = False
+                        break
+                    new_buffers.append(b)
+                    continue
+                # 2. E인 경우
+                if b.command == "E":
+                    # erase 범위가 완전 동일한 경우
+                    if b.lba == lba and b.lba + b.range == lba + erase_size:
+                        new_buffers += buffers[i + 1:]
+                        new_buffers.append(new_buffer)
+                        is_need_append_new_buffer = False
+                        break
+                    # erase 범위가 겹치는 경우
+                    elif ((b.lba <= lba and b.lba + b.range > lba) or
+                          (b.lba >= lba and b.lba < lba + erase_size)):
+                        # range 합쳤을 때, 10 넘는 경우에는 합치지 않기
+                        if b.range + erase_size > 10:
+                            new_buffers.append(b)
+                            continue
+                        if b.lba <= lba:
+                            # b.lba + range + b.range > 99 넘는 경우에도 추가하면 안돼!
+                            if b.lba + erase_size + b.range > 99:
+                                new_buffers.append(b)
+                                continue
 
+                            if b.lba + b.range > lba + erase_size:
+                                new_buffers += buffers[i:]
+                                is_need_append_new_buffer = False
+                                break
+
+                            b.range = lba + erase_size - 1 - b.lba
+                            new_buffers += buffers[i + 1:]
+                            new_buffers.append(b)
+                            is_need_append_new_buffer = False
+                            break
+
+                        if lba < b.lba:
+                            # lba + range + b.range > 99 넘는 경우에도 추가하면 안돼
+                            if lba + erase_size + b.range > 99:
+                                new_buffers.append(b)
+                                continue
+
+                            new_buffer.range = b.lba + b.range - lba
+                            continue
+                    new_buffers.append(b)
+                    continue
+
+        if is_need_append_new_buffer:
+            new_buffers.append(new_buffer)
         # 마지막에 rename
-        self.buffer_manager.set_buffer(buffers)
-        
+        self.buffer_manager.set_buffer(new_buffers)
+
 
 if __name__ == "__main__":
     ssd = SSD(FileManager())

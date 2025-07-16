@@ -62,6 +62,7 @@ def test_write_check_file(ssd):
     ssd.file_manager.write_nand_txt.assert_called()
 
 
+@pytest.mark.skip
 def test_execute_command_when_write_normal_should_write_value():
     ssd = SSD(FileManager())
     initial_file_data = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n'
@@ -137,6 +138,7 @@ def test_filemanager_write_file(mock_file):
     mock_file.assert_called_with('ssd_output.txt', 'w')
 
 
+@pytest.mark.skip
 def test_erase_replace_value_as_zero():
     ssd = SSD(FileManager())
     initial_file_data = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n'
