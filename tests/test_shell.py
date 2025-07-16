@@ -76,10 +76,9 @@ def test_exit(ssd_py_path):
     pass
 
 
-def test_help(capsys):
-    Shell.execute_command(cmd=ShellCommandEnum.HELP, args=[])
-    captured = capsys.readouterr()
-    assert MESSAGE_HELP in captured.out
+def test_help():
+    ret = Shell.execute_command(cmd=ShellCommandEnum.HELP, args=[])
+    assert ret == MESSAGE_HELP
 
 
 def test_find_invalid_command(ssd_py_path):
