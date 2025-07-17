@@ -185,7 +185,7 @@ class SSD:
             if buffer.command == "W":
                 self.write(buffer.lba, buffer.data)
             elif buffer.command == "E":
-                self.read(buffer.lba)
+                self.erase(buffer.lba, buffer.range)
             else:
                 self.file_manager.write_output_txt("ERROR")
                 print("Invalid command")
@@ -299,6 +299,7 @@ class SSD:
         # 마지막에 rename
         self.buffer_manager.set_buffer(new_buffers)
         self.file_manager.write_output_txt("")
+
 
 if __name__ == "__main__":
     ssd = SSD(FileManager())
