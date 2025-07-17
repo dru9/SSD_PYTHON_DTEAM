@@ -448,6 +448,102 @@ def test_merge_buffer_commands_when_erase_range_2():
 
         assert len(args[0]) == 3
 
+def test_flush_buffer_when_mode_is_flush_should_execute_instruction():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "F"]
+    ]
+    initial_buffers = [Buffer(command="W", lba=2, data="0xABCDABCD", range="")]
+    initial_file_data = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n3\t0x33333333\n'
+    expected = '0\t0x11111111\n1\t0x22222222\n2\t0xABCDABCD\n3\t0x33333333\n'
+    expected_lines = expected.splitlines(keepends=True)
+
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers) as mock_get_buffer, \
+          patch('builtins.open', mock_open(read_data=initial_file_data)) as mock_file, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer, \
+          patch.object(FileManager, 'write_output_txt') as mock_write_output):
+        ssd.execute_command(commands[0])
+
+        args, kwargs = mock_set_buffer.call_args
+        written_buffers = args[0]
+        assert len(written_buffers) == 0
+        write_calls = mock_file().write.call_args_list
+        expected_calls = [call(line) for line in expected_lines]
+        assert write_calls == expected_calls
+
+
+def test_flush_buffer_when_buffers_are_full_should_execute_instruction():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "W", "2", "0x12345678"]
+    ]
+    initial_buffers = [Buffer(command="W", lba=2, data="0xABCDABCD", range=""),
+                       Buffer(command="W", lba=3, data="0xABCDABCD", range=""),
+                       Buffer(command="W", lba=4, data="0xABCDABCD", range=""),
+                       Buffer(command="W", lba=5, data="0xABCDABCD", range=""),
+                       Buffer(command="W", lba=6, data="0xABCDABCD", range="")]
+    initial_file_data = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n3\t0x33333333\n4\t0x33333333\n5\t0x33333333\n6\t0x33333333\n'
+    expected = '0\t0x11111111\n1\t0x22222222\n2\t0xABCDABCD\n3\t0x33333333\n4\t0x33333333\n5\t0x33333333\n6\t0x33333333\n'
+    expected += '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n3\t0xABCDABCD\n4\t0x33333333\n5\t0x33333333\n6\t0x33333333\n'
+    expected += '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n3\t0x33333333\n4\t0xABCDABCD\n5\t0x33333333\n6\t0x33333333\n'
+    expected += '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n3\t0x33333333\n4\t0x33333333\n5\t0xABCDABCD\n6\t0x33333333\n'
+    expected += '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n3\t0x33333333\n4\t0x33333333\n5\t0x33333333\n6\t0xABCDABCD\n'
+    expected_lines = expected.splitlines(keepends=True)
+
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers) as mock_get_buffer, \
+          patch('builtins.open', mock_open(read_data=initial_file_data)) as mock_file, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer, \
+          patch.object(FileManager, 'write_output_txt')):
+        ssd.execute_command(commands[0])
+
+        write_calls = mock_file().write.call_args_list
+        expected_calls = [call(line) for line in expected_lines]
+        assert write_calls == expected_calls
+
+
+def test_flush_buffer_should_write_empty_string_when_normal():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "F"]
+    ]
+    initial_buffers = []
+    initial_file_data = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n3\t0x33333333\n4\t0x33333333\n5\t0x33333333\n6\t0x33333333\n'
+    expected = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n3\t0x33333333\n4\t0x33333333\n5\t0x33333333\n6\t0x33333333\n'
+
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers) as mock_get_buffer, \
+          patch('builtins.open', mock_open(read_data=initial_file_data)) as mock_file, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer, \
+          patch.object(FileManager, 'write_output_txt') as mock_write_buffer):
+        ssd.execute_command(commands[0])
+        mock_write_buffer.assert_called_once_with("")
+
+
+
+def test_command_buffer_test_erase2():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "E", "88", 6]
+    ]
+    initial_buffers = [
+        Buffer(command="E", lba=93, data="", range=7),
+    ]
+
+    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
+                                                                                        mock_open()) as mocked_open, \
+            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+        ssd.execute_command(commands[0])
+
+        args, kwargs = mock_set_buffer.call_args
+        buffer_written1 = args[0][0]
+        assert buffer_written1.command == "E"
+        assert buffer_written1.lba == 93
+        assert buffer_written1.range == 7
+        assert len(args[0]) == 2
+        buffer_written1 = args[0][1]
+        assert buffer_written1.command == "E"
+        assert buffer_written1.lba == 88
+        assert buffer_written1.range == 6
+
 
 def test_command_buffer_test_erase1():
     ssd = SSD(FileManager())
@@ -564,10 +660,15 @@ def test_command_buffer_test_erase2():
                                                                                         mock_open()) as mocked_open, \
             patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
         ssd.execute_command(commands[0])
-
         args, kwargs = mock_set_buffer.call_args
         buffer_written1 = args[0][0]
         assert buffer_written1.command == "E"
         assert buffer_written1.lba == 93
         assert buffer_written1.range == 7
         assert len(args[0]) == 1
+
+        
+def test_execute_command_when_flush_command_invalid_should_write_error():
+    run_execute_command_and_assert([None, "F", "0"], 'w', 'ERROR')
+
+

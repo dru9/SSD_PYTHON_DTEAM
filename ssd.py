@@ -107,11 +107,12 @@ class SSD:
         if mode == "F":
             buffers = self.buffer_manager.get_buffer()
             self.flush(buffers)
+            self.file_manager.write_output_txt("")
             return
         lba = int(args[2])
         if mode == "W":
             hex = args[3]
-            self._execute_command_new(mode=mode, lba=lba, data=args[3])
+            self._execute_command_new(mode=mode, lba=lba, data=hex)
         elif mode == "R":
             self._execute_command_new(mode=mode, lba=lba)
         elif mode == "E":
@@ -259,12 +260,20 @@ class SSD:
                         is_need_append_new_buffer = False
                         break
                     # erase 범위가 겹치는 경우
-                    elif ((b.lba <= lba and b.lba + b.range > lba) or
-                          (b.lba >= lba and b.lba < lba + erase_size)):
+                    elif ((b.lba <= lba < b.lba + b.range) or
+                          (lba <= b.lba < lba + erase_size)):
                         # range 합쳤을 때, 10 넘는 경우에는 합치지 않기
-                        if b.range + erase_size > 10:
+                        min_lba = b.lba
+                        if b.lba > lba:
+                            min_lba = lba
+                        max_range = lba + erase_size -1
+                        if max_range < b.lba + b.range -1:
+                            max_range = b.lba + b.range -1
+
+                        if max_range - min_lba > 10:
                             new_buffers.append(b)
                             continue
+
                         if b.lba <= lba:
                             # b.lba + b.range > 100 또는 lba + erase_size > 100  넘는 경우에도 추가하면 안돼!
                             if lba + erase_size > SIZE_LBA or b.lba + b.range > SIZE_LBA:
@@ -298,6 +307,7 @@ class SSD:
         # 마지막에 rename
         self.buffer_manager.set_buffer(new_buffers)
         self.file_manager.write_output_txt("")
+
 
 if __name__ == "__main__":
     ssd = SSD(FileManager())

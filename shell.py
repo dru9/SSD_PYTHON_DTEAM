@@ -4,7 +4,7 @@ import sys  # noqa
 from typing import Callable, Optional
 
 import utils
-from commands import EraseShellCommand, ReadShellCommand, WriteShellCommand
+from commands import EraseShellCommand, FlushShellCommand, ReadShellCommand, WriteShellCommand
 from constant import (
     FILENAME_MAIN_SSD,
     FILENAME_OUT,
@@ -29,6 +29,19 @@ ONE_ARGS_REQUIRE_COMMANDS = [
 
 
 class SSDController:
+
+    @classmethod
+    def _cache_inout(cls) -> str:
+        try:
+            with open(FILENAME_OUT, "r") as f:
+                content = f.read().strip()
+                return content
+
+        except FileNotFoundError:
+            return MESSAGE_ERROR
+
+        except Exception:
+            return MESSAGE_ERROR
 
     @classmethod
     def read(cls, lba: int) -> str:
@@ -66,17 +79,17 @@ class SSDController:
         return MESSAGE_ERROR
 
     @classmethod
-    def _cache_inout(cls) -> str:
-        try:
-            with open(FILENAME_OUT, "r") as f:
-                content = f.read().strip()
-                return content
-
-        except FileNotFoundError:
+    def flush(cls):
+        cmd = FlushShellCommand(FILENAME_MAIN_SSD)
+        is_ssd_run = cmd.execute()
+        if not is_ssd_run:
             return MESSAGE_ERROR
 
-        except Exception:
-            return MESSAGE_ERROR
+        res = cls._cache_inout()
+        if res == "":
+            return MESSAGE_DONE
+
+        return MESSAGE_ERROR
 
 
 class ShellParser:
@@ -190,6 +203,15 @@ class CommandExecutor:
         cls.logging("... COMPLETE")
         return "[Erase Range] Done"
 
+    @classmethod
+    def flush(cls):
+        ret = cls.ssd_controller.flush()
+        if ret == MESSAGE_ERROR:
+            return "[Flush] ERROR"
+
+        cls.logging("... COMPLETE")
+        return "[Flush] Done"
+
 
 class ScriptExecutor:
     ssd_controller = SSDController
@@ -286,6 +308,7 @@ class Shell:
                 ShellCommandEnum.FULLWRITE: cls.command_executor.full_write,
                 ShellCommandEnum.ERASE: cls.command_executor.erase,
                 ShellCommandEnum.ERASE_RANGE: cls.command_executor.erase_range,
+                ShellCommandEnum.FLUSH: cls.command_executor.flush,
                 ShellCommandEnum.SCRIPT_1: cls.script_executor.script_1,
                 ShellCommandEnum.SCRIPT_2: cls.script_executor.script_2,
                 ShellCommandEnum.SCRIPT_3: cls.script_executor.script_3,
@@ -303,11 +326,11 @@ class Shell:
     def run(cls) -> None:
         while True:
             cmd, args = cls.shell_parser.parse()
+            if cmd is None:
+                continue
             cls.logging(f"Command: {cmd.name} ({args})")
             if cmd == ShellCommandEnum.EXIT:
                 break
-            if cmd is None:
-                continue
             ret = cls.execute_command(cmd, args)
             if ret is not None:
                 print(ret)

@@ -58,3 +58,15 @@ def test_buffer_erase():
     result = buffer.to_string(2)
 
     assert result == expected
+
+
+def test_find_prefix():
+    bm = BufferManager()
+    file_names = ["2_0x12341234", "3_0x12341234", "4_0x12341234", "5_0x12341234"]
+
+    result = bm._find_prefix_in_strlist("1", file_names)
+    assert result == False
+
+    file_names.append("1_0x12341234")
+    result = bm._find_prefix_in_strlist("1", file_names)
+    assert result == True
