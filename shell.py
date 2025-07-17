@@ -299,23 +299,25 @@ class Shell:
     _command_mapping_dict = None
 
     @classmethod
-    def _command_mapper(cls, cmd: ShellCommandEnum):
-        if cls._command_mapping_dict is None:
-            cls._command_mapping_dict = {
-                ShellCommandEnum.HELP: lambda: MESSAGE_HELP,
-                ShellCommandEnum.READ: cls.command_executor.read,
-                ShellCommandEnum.WRITE: cls.command_executor.write,
-                ShellCommandEnum.FULLREAD: cls.command_executor.full_read,
-                ShellCommandEnum.FULLWRITE: cls.command_executor.full_write,
-                ShellCommandEnum.ERASE: cls.command_executor.erase,
-                ShellCommandEnum.ERASE_RANGE: cls.command_executor.erase_range,
-                ShellCommandEnum.FLUSH: cls.command_executor.flush,
-                ShellCommandEnum.SCRIPT_1: cls.script_executor.script_1,
-                ShellCommandEnum.SCRIPT_2: cls.script_executor.script_2,
-                ShellCommandEnum.SCRIPT_3: cls.script_executor.script_3,
-                ShellCommandEnum.SCRIPT_4: cls.script_executor.script_4,
-                ShellCommandEnum.INVALID: lambda: MESSAGE_INVALID_SHELL_CMD
-            }
+    def _command_mapper(cls, cmd: ShellCommandEnum) -> Callable:
+        if cls._command_mapping_dict is not None:
+            return cls._command_mapping_dict[cmd]
+
+        cls._command_mapping_dict = {
+            ShellCommandEnum.HELP: lambda: MESSAGE_HELP,
+            ShellCommandEnum.READ: cls.command_executor.read,
+            ShellCommandEnum.WRITE: cls.command_executor.write,
+            ShellCommandEnum.FULLREAD: cls.command_executor.full_read,
+            ShellCommandEnum.FULLWRITE: cls.command_executor.full_write,
+            ShellCommandEnum.ERASE: cls.command_executor.erase,
+            ShellCommandEnum.ERASE_RANGE: cls.command_executor.erase_range,
+            ShellCommandEnum.FLUSH: cls.command_executor.flush,
+            ShellCommandEnum.SCRIPT_1: cls.script_executor.script_1,
+            ShellCommandEnum.SCRIPT_2: cls.script_executor.script_2,
+            ShellCommandEnum.SCRIPT_3: cls.script_executor.script_3,
+            ShellCommandEnum.SCRIPT_4: cls.script_executor.script_4,
+            ShellCommandEnum.INVALID: lambda: MESSAGE_INVALID_SHELL_CMD
+        }
         return cls._command_mapping_dict[cmd]
 
     @classmethod
@@ -333,8 +335,9 @@ class Shell:
             if cmd == ShellCommandEnum.EXIT:
                 break
             ret = cls.execute_command(cmd, args)
-            if ret is not None:
-                print(ret)
+            if ret is None:
+                continue
+            print(ret)
 
     @classmethod
     def run_script(cls, script: str = FILENAME_SCRIPT_DEFAULT) -> None:
@@ -347,20 +350,20 @@ class Shell:
             return
 
         for cmd in cmds:
-            cmd = cmd.strip()
-            print(f"{cmd:<28}___   Run...", end="", flush=True)
-            cmd_enum = cls.shell_parser.find_command(cmd)
-            if cmd_enum == ShellCommandEnum.EXIT:
-                break
+            cmd_enum = cls.shell_parser.find_command(command_str=cmd.strip())
             if cmd_enum is None:
                 continue
-            ret = cls.execute_command(cmd_enum, [])
-            if ret is not None:
-                if ret == MESSAGE_PASS:
-                    print("Pass")
-                else:
-                    print("FAIL!")
-                    break
+            print(f"{cmd_enum.value:<28}___   Run...", end="", flush=True)
+            if cmd_enum == ShellCommandEnum.EXIT:
+                break
+            ret = cls.execute_command(cmd_enum, args=[])
+            if ret is None:
+                continue
+            if ret == MESSAGE_PASS:
+                print("Pass")
+            else:
+                print("FAIL!")
+                break
 
 
 if __name__ == "__main__":
