@@ -179,3 +179,16 @@ def test_script_3(ssd_py_path):
 def test_script_4(ssd_py_path):
     ret = Shell.execute_command(cmd=ShellCommandEnum.SCRIPT_4, args=[])
     assert ret == MESSAGE_PASS
+
+
+def test_run_script(ssd_py_path, capsys):
+    test_script = "test_shell_script.txt"
+    expected = ('1_FullWriteAndReadCompare   ___   Run...Pass\n'
+                '2_PartialLBAWrite           ___   Run...Pass\n')
+    with open(test_script, "w") as f:
+        f.write("1_FullWriteAndReadCompare\n2_PartialLBAWrite")
+
+    Shell.run_script(script=test_script)
+
+    captured = capsys.readouterr()
+    assert captured.out == expected
