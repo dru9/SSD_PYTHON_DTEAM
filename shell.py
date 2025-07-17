@@ -14,6 +14,7 @@ from constant import (
     MESSAGE_HELP,
     MESSAGE_INVALID_SHELL_CMD,
     MESSAGE_PASS,
+    SIZE_LBA,
     ShellCommandEnum
 )
 from logger import Logger
@@ -140,7 +141,7 @@ class CommandExecutor:
 
     @classmethod
     def full_write(cls, value: str):
-        for lba in range(100):
+        for lba in range(SIZE_LBA):
             ret = cls.ssd_controller.write(lba, value)
             if ret == MESSAGE_ERROR:
                 return f"[Full Write] ERROR in LBA[{lba:02d}]"
@@ -149,7 +150,7 @@ class CommandExecutor:
         return "[Full Write] Done"
 
     @classmethod
-    def full_read(cls, num_iter: int = 100) -> str:
+    def full_read(cls, num_iter: int = SIZE_LBA) -> str:
         header = "[Full Read]"
         results = [header]
         results += [
@@ -232,7 +233,7 @@ class ScriptExecutor:
 
     @classmethod
     def script_3(cls, num_iter: int = 200) -> str:
-        lba_1, lba_2 = (0, 99)
+        lba_1, lba_2 = (0, SIZE_LBA - 1)
         for _ in range(num_iter):
             value = utils.get_random_value()
             cls.ssd_controller.write(lba=lba_1, value=value)
@@ -250,7 +251,7 @@ class ScriptExecutor:
             return MESSAGE_FAIL
 
         for _ in range(num_iter):
-            for start_lba in range(2, 99, 2):
+            for start_lba in range(2, SIZE_LBA - 1, 2):
                 two_diff_values = utils.get_two_diff_random_value()
 
                 for val in two_diff_values:
@@ -258,7 +259,7 @@ class ScriptExecutor:
                     if ret == MESSAGE_ERROR:
                         return MESSAGE_FAIL
 
-                end_lba = min(start_lba + 2, 99)
+                end_lba = min(start_lba + 2, SIZE_LBA - 1)
                 ret = cls.command_executor.erase_range(start_lba, end_lba)
                 if MESSAGE_ERROR in ret:
                     return MESSAGE_FAIL

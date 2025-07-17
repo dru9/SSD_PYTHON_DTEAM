@@ -16,6 +16,7 @@ class ShellCommandEnum(Enum):
     SCRIPT_4 = "4_EraseAndWriteAging"
     INVALID = "invalid"
 
+SIZE_LBA = 100
 
 FILENAME = "ssd_nand.txt"
 FILENAME_OUT = "ssd_output.txt"
@@ -30,6 +31,7 @@ MESSAGE_DONE = "DONE"
 MESSAGE_ERROR = "ERROR"
 MESSAGE_FAIL = "FAIL"
 MESSAGE_PASS = "PASS"
+MESSAGE_INVALID_SHELL_CMD = "Invalid shall command."
 MESSAGE_HELP = """
 usage: <command> [<args>]
 
@@ -47,5 +49,3 @@ test scripts:
 Team Leader: 송주환
 Team Members: 김희준, 박혜녹, 윤다영, 정동혁, 한누리, 오지은
 """
-
-MESSAGE_INVALID_SHELL_CMD = "Invalid shall command."
