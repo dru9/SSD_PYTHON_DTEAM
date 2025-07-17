@@ -519,7 +519,7 @@ def test_flush_buffer_should_write_empty_string_when_normal():
         mock_write_buffer.assert_called_once_with("")
 
 
-def test_command_buffer_test_erase2():
+def test_command_buffer_test_erase_keep_buffer():
     ssd = SSD(FileManager())
     commands = [
         [None, "E", "88", 6]
@@ -545,7 +545,7 @@ def test_command_buffer_test_erase2():
         assert buffer_written1.range == 6
 
 
-def test_command_buffer_test_erase1():
+def test_command_buffer_test_erase_overlap_range():
     ssd = SSD(FileManager())
     commands = [
         [None, "E", "10", 3]
@@ -611,7 +611,7 @@ def test_command_buffer_test_erase_over10():
         buffer_written1 = args[0][0]
         assert buffer_written1.command == "E"
         assert buffer_written1.lba == 16
-        assert buffer_written1.range == 10
+        assert buffer_written1.range == 9
 
 
 def test_erase_command_expands_buffer_range_by_merging():
