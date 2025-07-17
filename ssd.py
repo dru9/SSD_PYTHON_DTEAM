@@ -205,89 +205,87 @@ class SSD:
         self.file_manager.write_output_txt("")
 
     def _process_erase_mode(self, buffers, erase_size, lba, new_buffer):
+        def _is_erase_range_same(each_buffer, erase_size, lba):
+            return each_buffer.lba == lba and each_buffer.lba + each_buffer.range == lba + erase_size
+
+        def _is_erase_range_overlap(each_buffer, erase_size, lba):
+            return ((each_buffer.lba <= lba < each_buffer.lba + each_buffer.range) or
+                    (lba <= each_buffer.lba < lba + erase_size))
+
+        def _check_merge_range_is_bigger_than_10(each_buffer, erase_size, lba):
+            min_lba = min(lba, each_buffer.lba)
+            max_range = lba + erase_size
+            if max_range < each_buffer.lba + each_buffer.range:
+                max_range = each_buffer.lba + each_buffer.range
+            if max_range - min_lba > 10:
+                return True
+            else:
+                return False
+
+        def _continue_check_for_erase_range_overlap(each_buffer, erase_size, lba, new_buffers):
+            if _check_merge_range_is_bigger_than_10(each_buffer, erase_size, lba):
+                new_buffers.append(each_buffer)
+                return True
+            if each_buffer.lba <= lba:
+                # b.lba + b.range > 100 또는 lba + erase_size > 100  넘는 경우에도 추가하면 안돼!
+                if lba + erase_size > SIZE_LBA or each_buffer.lba + each_buffer.range > SIZE_LBA:
+                    new_buffers.append(each_buffer)
+                    return True
+            else:
+                # lba + range  > 100 or b.lba + b.range > 100 넘는 경우에도 추가하면 안돼
+                if lba + erase_size > SIZE_LBA or each_buffer.lba + each_buffer.range > SIZE_LBA:
+                    new_buffers.append(each_buffer)
+                    return True
+            return False
+
         new_buffers = []
         is_need_append_new_buffer = True
         for i, each_buffer in enumerate(buffers):
-            # 1. W인 경우
             if each_buffer.command == "W":
-                if lba <= each_buffer.lba < lba + erase_size:
-                    continue
-                new_buffers.append(each_buffer)
-                continue
-            # 2. E인 경우
-            if each_buffer.command == "E":
-                # erase 범위가 완전 동일한 경우
-                if each_buffer.lba == lba and each_buffer.lba + each_buffer.range == lba + erase_size:
-                    new_buffers += buffers[i + 1:]
-                    new_buffers.append(new_buffer)
-                    is_need_append_new_buffer = False
+                if lba > each_buffer.lba or each_buffer.lba >= lba + erase_size:
+                    new_buffers.append(each_buffer)
+            elif each_buffer.command == "E":
+                if _is_erase_range_same(each_buffer, erase_size, lba):
+                    is_need_append_new_buffer, new_buffers = self.update_buffer(buffers, i, new_buffer, new_buffers)
                     break
-                # erase 범위가 겹치는 경우
-
-                elif ((each_buffer.lba <= lba < each_buffer.lba + each_buffer.range) or
-                      (lba <= each_buffer.lba < lba + erase_size)):
-
-                    # range 합쳤을 때, 10 넘는 경우에는 합치지 않기
-                    min_lba = lba
-                    if lba > each_buffer.lba:
-                        min_lba = each_buffer.lba
-                    max_range = lba + erase_size
-                    if max_range < each_buffer.lba + each_buffer.range:
-                        max_range = each_buffer.lba + each_buffer.range
-                    if max_range - min_lba > 10:
-                        new_buffers.append(each_buffer)
+                elif _is_erase_range_overlap(each_buffer, erase_size, lba):
+                    if _continue_check_for_erase_range_overlap(each_buffer, erase_size, lba, new_buffers):
                         continue
 
                     if each_buffer.lba <= lba:
-                        # b.lba + b.range > 100 또는 lba + erase_size > 100  넘는 경우에도 추가하면 안돼!
-                        if lba + erase_size > SIZE_LBA or each_buffer.lba + each_buffer.range > SIZE_LBA:
-                            new_buffers.append(each_buffer)
-                            continue
-
                         if each_buffer.lba + each_buffer.range > lba + erase_size:
                             new_buffers += buffers[i:]
                             is_need_append_new_buffer = False
                             break
 
                         each_buffer.range = lba + erase_size - each_buffer.lba
-                        new_buffers += buffers[i + 1:]
-                        new_buffers.append(each_buffer)
-                        is_need_append_new_buffer = False
+                        is_need_append_new_buffer, new_buffers = self.update_buffer(buffers, i, each_buffer, new_buffers)
                         break
-
-                    if lba < each_buffer.lba:
-                        # lba + range  > 100 or b.lba + b.range > 100 넘는 경우에도 추가하면 안돼
-                        if lba + erase_size > SIZE_LBA or each_buffer.lba + each_buffer.range > SIZE_LBA:
-                            new_buffers.append(each_buffer)
-                            continue
-
+                    else:
                         new_range = each_buffer.lba + each_buffer.range - lba
                         if new_range > erase_size:
                             new_buffer.range = new_range
-
-                        continue
-                new_buffers.append(each_buffer)
-                continue
         if is_need_append_new_buffer:
             new_buffers.append(new_buffer)
         return new_buffers
+
+    def update_buffer(self, buffers, i, new_buffer, new_buffers):
+        new_buffers += buffers[i + 1:]
+        new_buffers.append(new_buffer)
+        return False, new_buffers
 
     def _process_write_mode(self, buffers, lba, new_buffer):
         def _handle_write(buffers, each_buffer, i, is_need_append_new_buffer, lba, new_buffer, new_buffers):
             if each_buffer.lba != lba:
                 new_buffers.append(each_buffer)
             else:
-                new_buffers += buffers[i + 1:]
-                new_buffers.append(new_buffer)
-                is_need_append_new_buffer = False
+                is_need_append_new_buffer, new_buffers = self.update_buffer(buffers, i, new_buffer, new_buffers)
             return is_need_append_new_buffer, new_buffers
 
         def _handle_erase(buffers, each_buffer, i, is_need_append_new_buffer, lba, new_buffer, new_buffers):
             if each_buffer.lba == lba:
                 if each_buffer.range == 1:
-                    new_buffers += buffers[i + 1:]
-                    new_buffers.append(new_buffer)
-                    is_need_append_new_buffer = False
+                    is_need_append_new_buffer, new_buffers = self.update_buffer(buffers, i, new_buffer, new_buffers)
                 if is_need_append_new_buffer:
                     each_buffer.lba += 1
                     each_buffer.range -= 1
