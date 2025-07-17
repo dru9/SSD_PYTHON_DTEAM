@@ -66,6 +66,13 @@ def test_erase_range_mock(file_mock, shell_mock):
     assert ret == "[Erase Range] Done"
 
 
+def test_flush_mock(file_mock, shell_mock):
+    ret = Shell.execute_command(cmd=ShellCommandEnum.FLUSH, args=[])
+    shell_mock.assert_called_once_with(['python', 'ssd.py', 'F'], text=True)
+    file_mock.assert_any_call('ssd_output.txt', 'r')
+    assert ret == '[Flush] Done'
+
+
 def test_script_1_mock(file_mock, shell_mock):
     Shell.execute_command(cmd=ShellCommandEnum.SCRIPT_1, args=[])
     shell_mock.assert_called_with(['python', 'ssd.py', 'R', '0'], text=True)
@@ -138,6 +145,11 @@ def test_erase(ssd_py_path):
 def test_erase_range(ssd_py_path):
     ret = Shell.execute_command(cmd=ShellCommandEnum.ERASE_RANGE, args=[10, 30])
     assert ret == "[Erase Range] Done"
+
+
+def test_flush(ssd_py_path):
+    ret = Shell.execute_command(cmd=ShellCommandEnum.FLUSH, args=[])
+    assert ret == "[Flush] Done"
 
 
 def test_script_1(ssd_py_path):
