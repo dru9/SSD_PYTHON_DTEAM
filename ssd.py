@@ -107,11 +107,12 @@ class SSD:
         if mode == "F":
             buffers = self.buffer_manager.get_buffer()
             self.flush(buffers)
+            self.file_manager.write_output_txt("")
             return
         lba = int(args[2])
         if mode == "W":
             hex = args[3]
-            self._execute_command_new(mode=mode, lba=lba, data=args[3])
+            self._execute_command_new(mode=mode, lba=lba, data=hex)
         elif mode == "R":
             self._execute_command_new(mode=mode, lba=lba)
         elif mode == "E":

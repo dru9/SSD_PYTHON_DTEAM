@@ -8,6 +8,7 @@ class ShellCommandEnum(Enum):
     FULLREAD = "fullread"
     ERASE = "erase"
     ERASE_RANGE = "erase_range"
+    FLUSH = "flush"
     HELP = "help"
     EXIT = "exit"
     SCRIPT_1 = "1_FullWriteAndReadCompare"
@@ -15,6 +16,7 @@ class ShellCommandEnum(Enum):
     SCRIPT_3 = "3_WriteReadAging"
     SCRIPT_4 = "4_EraseAndWriteAging"
     INVALID = "invalid"
+
 
 SIZE_LBA = 100
 
