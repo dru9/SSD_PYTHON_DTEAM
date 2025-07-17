@@ -195,11 +195,6 @@ class SSD:
         self.buffer_manager.set_buffer(new_buffers)
         self.file_manager.write_output("")
 
-    def update_buffer(self, buffers, i, new_buffer, new_buffers):
-        new_buffers += buffers[i + 1:]
-        new_buffers.append(new_buffer)
-        return False, new_buffers
-
     def _process_read_mode(self, buffers, lba):
         if not self.read_first_buffer(buffers, lba):
             self.read(lba)
@@ -239,14 +234,14 @@ class SSD:
             return False
 
         new_buffers = []
-        is_need_append_new_buffer = True
+        is_need_to_append = True
         for i, each_buffer in enumerate(buffers):
             if each_buffer.command == "W":
                 if lba > each_buffer.lba or each_buffer.lba >= lba + erase_size:
                     new_buffers.append(each_buffer)
             elif each_buffer.command == "E":
                 if _is_erase_range_same(each_buffer, erase_size, lba):
-                    is_need_append_new_buffer, new_buffers = self.update_buffer(buffers, i, new_buffer, new_buffers)
+                    is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, new_buffer, new_buffers)
                     break
                 elif _is_erase_range_overlap(each_buffer, erase_size, lba):
                     if _continue_check_for_erase_range_overlap(each_buffer, erase_size, lba, new_buffers):
@@ -255,57 +250,70 @@ class SSD:
                     if each_buffer.lba <= lba:
                         if each_buffer.lba + each_buffer.range > lba + erase_size:
                             new_buffers += buffers[i:]
-                            is_need_append_new_buffer = False
+                            is_need_to_append = False
                             break
 
                         each_buffer.range = lba + erase_size - each_buffer.lba
-                        is_need_append_new_buffer, new_buffers = self.update_buffer(buffers, i, each_buffer, new_buffers)
+                        is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, each_buffer, new_buffers)
                         break
                     else:
                         new_range = each_buffer.lba + each_buffer.range - lba
                         if new_range > erase_size:
                             new_buffer.range = new_range
-        if is_need_append_new_buffer:
+        if is_need_to_append:
             new_buffers.append(new_buffer)
         return new_buffers
 
     def _process_write_mode(self, buffers, lba, new_buffer):
-        def _handle_write(buffers, each_buffer, i, is_need_append_new_buffer, lba, new_buffer, new_buffers):
+        def _handle_write(buffers, each_buffer, i, is_need_to_append, lba, new_buffer, new_buffers):
             if each_buffer.lba != lba:
                 new_buffers.append(each_buffer)
             else:
-                is_need_append_new_buffer, new_buffers = self.update_buffer(buffers, i, new_buffer, new_buffers)
-            return is_need_append_new_buffer, new_buffers
+                is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, new_buffer, new_buffers)
+            return is_need_to_append, new_buffers
 
-        def _handle_erase(buffers, each_buffer, i, is_need_append_new_buffer, lba, new_buffer, new_buffers):
+        def _handle_erase(buffers, each_buffer, i, is_need_to_append, lba, new_buffer, new_buffers):
             if each_buffer.lba == lba:
                 if each_buffer.range == 1:
-                    is_need_append_new_buffer, new_buffers = self.update_buffer(buffers, i, new_buffer, new_buffers)
-                if is_need_append_new_buffer:
+                    is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, new_buffer, new_buffers)
+                if is_need_to_append:
                     each_buffer.lba += 1
                     each_buffer.range -= 1
             elif (each_buffer.lba + each_buffer.range - 1) == lba:
                 each_buffer.range -= 1
-            if is_need_append_new_buffer:
+            if is_need_to_append:
                 new_buffers.append(each_buffer)
-            return is_need_append_new_buffer, new_buffers
+            return is_need_to_append, new_buffers
 
         new_buffers = []
-        is_need_append_new_buffer = True
+        is_need_to_append = True
         for i, each_buffer in enumerate(buffers):
             if each_buffer.command == "W":
-                is_need_append_new_buffer, new_buffers = _handle_write(buffers, each_buffer, i,
-                                                                       is_need_append_new_buffer, lba, new_buffer,
-                                                                       new_buffers)
+                is_need_to_append, new_buffers = _handle_write(
+                    buffers,
+                    each_buffer,
+                    i,
+                    is_need_to_append,
+                    lba,
+                    new_buffer,
+                    new_buffers,
+                )
             elif each_buffer.command == "E":
-                is_need_append_new_buffer, new_buffers = _handle_erase(buffers, each_buffer, i,
-                                                                       is_need_append_new_buffer, lba, new_buffer,
-                                                                       new_buffers)
-            if is_need_append_new_buffer == False:
+                is_need_to_append, new_buffers = _handle_erase(
+                    buffers,
+                    each_buffer,
+                    i,
+                    is_need_to_append,
+                    lba,
+                    new_buffer,
+                    new_buffers,
+                )
+            if is_need_to_append == False:
                 break
 
-        if is_need_append_new_buffer:
+        if is_need_to_append:
             new_buffers.append(new_buffer)
+
         return new_buffers
 
     def read_first_buffer(self, buffers, lba):

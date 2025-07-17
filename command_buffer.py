@@ -21,9 +21,9 @@ class Buffer:
 
 
 class BufferManager:
-    def __init__(self):
+
+    def __init__(self) -> None:
         self.buffers: list[Buffer] = []
-        # ./buffer dir + empty 파일 5개 없으면 만듬
         self.make_empty_buffer_folder_and_files()
         self._get_files_to_buffers()
 
@@ -68,11 +68,9 @@ class BufferManager:
         file.touch()
 
     def _get_files_to_buffers(self):
-        # ./buffer directory 내의 buffer 파일 name가져와서 self.buffers에 등록하는 역할
-        self.buffers = []  # 비우고 시작
-
-        file_list = os.listdir(BUFFER_FOLDER)
-        file_list.sort()
+        """Register self.buffers from the filenames in the buffer directory."""
+        self.buffers: list[Buffer] = []
+        file_list = sorted(os.listdir(BUFFER_FOLDER))
         for fileName in file_list:
             if "empty" in fileName:
                 continue
@@ -89,3 +87,15 @@ class BufferManager:
             else:
                 continue
             self.buffers.append(new_buffer)
+
+    @classmethod
+    def update(
+            cls,
+            buffers: list[Buffer],
+            idx: int,
+            new_buffer: Buffer,
+            new_buffers: list[Buffer],
+    ) -> tuple[bool, list[Buffer]]:
+        new_buffers += buffers[idx + 1:]
+        new_buffers.append(new_buffer)
+        return False, new_buffers
