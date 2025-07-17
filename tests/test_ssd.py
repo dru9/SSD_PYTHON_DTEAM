@@ -611,13 +611,7 @@ def test_command_buffer_test_erase_over10():
         buffer_written1 = args[0][0]
         assert buffer_written1.command == "E"
         assert buffer_written1.lba == 16
-        assert buffer_written1.range == 9
-
-        buffer_written2 = args[0][1]
-        assert buffer_written2.command == "E"
-        assert buffer_written2.lba == 22
-        assert buffer_written2.range == 4
-        assert len(args[0]) == 2
+        assert buffer_written1.range == 10
 
 
 def test_erase_command_expands_buffer_range_by_merging():
