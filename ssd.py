@@ -260,8 +260,8 @@ class SSD:
                         is_need_append_new_buffer = False
                         break
                     # erase 범위가 겹치는 경우
-                    elif ((b.lba <= lba and b.lba + b.range > lba) or
-                          (b.lba >= lba and b.lba < lba + erase_size)):
+                       elif ((b.lba <= lba < b.lba + b.range) or
+                          (lba <= b.lba < lba + erase_size)):
                         # range 합쳤을 때, 10 넘는 경우에는 합치지 않기
                         min_lba = b.lba
                         if b.lba > lba:
