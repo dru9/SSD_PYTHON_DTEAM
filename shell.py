@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import sys  # noqa
-from typing import Callable, Optional, Union
+from typing import Callable, Optional
 
 import utils
 from commands import EraseShellCommand, FlushShellCommand, ReadShellCommand, WriteShellCommand
@@ -299,7 +299,7 @@ class Shell:
     _command_mapping_dict = None
 
     @classmethod
-    def _command_mapper(cls, cmd: ShellCommandEnum) -> Union[Callable, str]:
+    def _command_mapper(cls, cmd: ShellCommandEnum) -> Callable:
         if cls._command_mapping_dict is not None:
             return cls._command_mapping_dict[cmd]
 
