@@ -8,6 +8,7 @@ from commands import EraseShellCommand, FlushShellCommand, ReadShellCommand, Wri
 from constant import (
     FILENAME_MAIN_SSD,
     FILENAME_OUT,
+    FILENAME_SCRIPT_DEFAULT,
     MESSAGE_DONE,
     MESSAGE_ERROR,
     MESSAGE_FAIL,
@@ -336,7 +337,7 @@ class Shell:
                 print(ret)
 
     @classmethod
-    def runner(cls, cmd_file: str) -> None:
+    def run_script(cls, script: str = FILENAME_SCRIPT_DEFAULT) -> None:
         try:
             with open(cmd_file, "r") as f:
                 cmds = f.readlines()
@@ -365,6 +366,6 @@ class Shell:
 if __name__ == "__main__":
     if len(sys.argv) == 2:
         cmd_file = sys.argv[1]
-        Shell.runner(cmd_file)
+        Shell.run_script(script=cmd_file)
     else:
         Shell.run()

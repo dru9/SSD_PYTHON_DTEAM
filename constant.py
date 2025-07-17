@@ -23,6 +23,7 @@ SIZE_LBA = 100
 FILENAME = "ssd_nand.txt"
 FILENAME_OUT = "ssd_output.txt"
 FILENAME_MAIN_SSD = "ssd.py"
+FILENAME_SCRIPT_DEFAULT = "shell_script.txt"
 
 LOG_FILE_MAX_SIZE = 10 * 1024
 LOG_FILE_NAME = "latest.log"
@@ -35,6 +36,16 @@ MESSAGE_FAIL = "FAIL"
 MESSAGE_PASS = "PASS"
 MESSAGE_INVALID_SHELL_CMD = "Invalid shall command."
 MESSAGE_HELP = """
+         ／＞　 フ
+        | 　_　_| 
+       ／` ミ＿xノ 
+      /　　　　 |
+     /　 ヽ　　 ﾉ
+    │　　|　|　|
+／￣|　　 |　|　|
+(￣ヽ＿_ヽ_)__)
+＼二) ... Dooly Let`s go !!!
+
 usage: <command> [<args>]
 
 read: read a value from the given LBA

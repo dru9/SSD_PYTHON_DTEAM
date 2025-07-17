@@ -1,8 +1,10 @@
+from __future__ import annotations
+
+import glob
 import inspect
 import os
 from datetime import datetime
 from typing import Optional, Tuple
-import glob
 
 from constant import (
     LOG_FILE_MAX_SIZE,
@@ -13,19 +15,32 @@ from constant import (
 
 
 class Logger:
+    _instance: Logger | None = None
+    _initialized: bool = False
+
+    def __new__(cls, *args, **kwargs):
+        if not cls._instance:
+            cls._instance = super().__new__(cls)
+        return cls._instance
 
     def __init__(self, log_dir: str = "./log"):
+        if self._initialized:
+            return
+
+        self._setup_log_env(log_dir)
+        self._initialized = True
+
+    def _setup_log_env(self, log_dir):
         self.log_dir = log_dir
         self.latest_log = os.path.join(log_dir, LOG_FILE_NAME)
-
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
-
         if not os.path.exists(self.latest_log):
             with open(self.latest_log, "w"):
                 pass
 
-    def _get_timestamp(self) -> Tuple[str, datetime]:
+    @staticmethod
+    def _get_timestamp() -> Tuple[str, datetime]:
         now = datetime.now()
         return now.strftime("%y.%m.%d %H:%M"), now
 
@@ -43,8 +58,7 @@ class Logger:
             with open(self.latest_log, "w"):
                 pass
 
-            self._rename_log_files([new_name, "latest.log"])
-
+            self._rename_log_files([new_name, LOG_FILE_NAME])
 
     def _rename_log_files(self, exclude_files):
         log_files = glob.glob(os.path.join(self.log_dir, "*.log"))
@@ -53,7 +67,6 @@ class Logger:
             if os.path.basename(log_file) not in exclude_files_set:
                 new_name = log_file.replace(".log", ".zip")
                 os.rename(log_file, new_name)
-                print(f"Renamed {log_file} to {new_name}")
 
     def print(self, message: str, fn_name: Optional[str] = None) -> None:
         self._rollover_if_needed()
