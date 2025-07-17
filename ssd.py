@@ -241,7 +241,7 @@ class SSD:
                 if each_buffer.command == "W":
                     if each_buffer.lba >= lba and each_buffer.lba < lba + erase_size:
                         continue
-                    new_buffers.append(each_buffer)
+                    new_buffers.append(b)
                     continue
                 # 2. E인 경우
                 if each_buffer.command == "E":
