@@ -238,10 +238,10 @@ class SSD:
         if mode == "E":
             for i, each_buffer in enumerate(buffers):
                 # 1. W인 경우
-                if b.command == "W":
-                    if lba <= b.lba < lba + erase_size:
+                if each_buffer.command == "W":
+                    if lba <= each_buffer.lba < lba + erase_size:
                         continue
-                    new_buffers.append(b)
+                    new_buffers.append(each_buffer)
                     continue
                 # 2. E인 경우
                 if each_buffer.command == "E":
@@ -253,8 +253,8 @@ class SSD:
                         break
                     # erase 범위가 겹치는 경우
 
-                    elif ((b.lba <= lba < b.lba + b.range) or
-                          (lba <= b.lba < lba + erase_size)):
+                    elif ((each_buffer.lba <= lba < each_buffer.lba + each_buffer.range) or
+                          (lba <= each_buffer.lba < lba + erase_size)):
 
                         # range 합쳤을 때, 10 넘는 경우에는 합치지 않기
                         if each_buffer.range + erase_size > 10:
@@ -283,7 +283,7 @@ class SSD:
                                 new_buffers.append(each_buffer)
                                 continue
 
-                            new_range = b.lba + b.range - lba
+                            new_range = each_buffer.lba + each_buffer.range - lba
                             if new_range > erase_size:
                                 new_buffer.range = new_range
 
