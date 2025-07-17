@@ -179,3 +179,11 @@ def test_script_3(ssd_py_path):
 def test_script_4(ssd_py_path):
     ret = Shell.execute_command(cmd=ShellCommandEnum.SCRIPT_4, args=[])
     assert ret == MESSAGE_PASS
+
+
+def test_run_function(monkeypatch, capsys):
+    inputs = iter(["read 100", "", "exit"])
+    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+    ret = Shell.run()
+    captured = capsys.readouterr()
+    assert captured.out == "[Read] ERROR\n"
