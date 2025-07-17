@@ -303,11 +303,11 @@ class Shell:
     def run(cls) -> None:
         while True:
             cmd, args = cls.shell_parser.parse()
+            if cmd is None:
+                continue
             cls.logging(f"Command: {cmd.name} ({args})")
             if cmd == ShellCommandEnum.EXIT:
                 break
-            if cmd is None:
-                continue
             ret = cls.execute_command(cmd, args)
             if ret is not None:
                 print(ret)
