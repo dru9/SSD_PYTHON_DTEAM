@@ -67,7 +67,6 @@ class Logger:
             if os.path.basename(log_file) not in exclude_files_set:
                 new_name = log_file.replace(".log", ".zip")
                 os.rename(log_file, new_name)
-                print(f"Renamed {log_file} to {new_name}")
 
     def print(self, message: str, fn_name: Optional[str] = None) -> None:
         self._rollover_if_needed()
