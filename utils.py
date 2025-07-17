@@ -1,5 +1,7 @@
 import random
 
+from constant import SIZE_LBA
+
 
 def get_random_value(num_digit: int = 8, format_hexadecimal: bool = True) -> str:
     value: int = random.randint(0, int("9" * num_digit))
@@ -27,9 +29,9 @@ def validate_erase_args(lba: int, size: int) -> bool:
     start, end = (lba, lba + size)
     if start < 0:
         return False
-    if end > 100:
+    if end > SIZE_LBA:
         return False
-    if size < 1 or size > 100:
+    if size < 1 or size > SIZE_LBA:
         return False
     return True
 
@@ -40,10 +42,10 @@ def validate_erase_range_args(start_lba: int, end_lba: int) -> bool:
     if not isinstance(end_lba, int):
         return False
 
-    if start_lba < 0 or start_lba > 99:
+    if start_lba < 0 or start_lba > SIZE_LBA - 1:
         return False
 
-    if end_lba < 0 or end_lba > 99:
+    if end_lba < 0 or end_lba > SIZE_LBA - 1:
         return False
 
     if start_lba > end_lba:
