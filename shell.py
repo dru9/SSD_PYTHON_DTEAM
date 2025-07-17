@@ -20,12 +20,14 @@ from constant import (
 )
 from logger import Logger
 
-TWO_ARGS_REQUIRE_COMMANDS = [ShellCommandEnum.WRITE]
+TWO_ARGS_REQUIRE_COMMANDS = [
+    ShellCommandEnum.WRITE,
+    ShellCommandEnum.ERASE,
+    ShellCommandEnum.ERASE_RANGE
+]
 ONE_ARGS_REQUIRE_COMMANDS = [
     ShellCommandEnum.READ,
     ShellCommandEnum.FULLWRITE,
-    ShellCommandEnum.ERASE,
-    ShellCommandEnum.ERASE_RANGE,
 ]
 
 
@@ -136,7 +138,7 @@ class CommandExecutor:
 
     @classmethod
     def read(cls, lba: int) -> str:
-        lba = int(lba)  # todo: safe convert
+        lba = utils.safe_int(lba)
         ret = cls.ssd_controller.read(lba)
         if ret == MESSAGE_ERROR:
             return "[Read] ERROR"
@@ -146,6 +148,7 @@ class CommandExecutor:
 
     @classmethod
     def write(cls, lba: int, value: str) -> str:
+        lba = utils.safe_int(lba)
         ret = cls.ssd_controller.write(lba, value)
         if ret == MESSAGE_ERROR:
             return "[Write] ERROR"
@@ -176,6 +179,9 @@ class CommandExecutor:
 
     @classmethod
     def erase(cls, lba: int, size: int) -> str:
+        lba = utils.safe_int(lba)
+        size = utils.safe_int(size)
+
         if not utils.validate_erase_args(lba, size):
             return "[Erase] ERROR"
 
@@ -193,6 +199,9 @@ class CommandExecutor:
 
     @classmethod
     def erase_range(cls, start_lba: int, end_lba: int) -> str:
+        start_lba = utils.safe_int(start_lba)
+        end_lba = utils.safe_int(end_lba)
+
         if not utils.validate_erase_range_args(start_lba, end_lba):
             return "[Erase Range] ERROR"
 
