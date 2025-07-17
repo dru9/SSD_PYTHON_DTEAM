@@ -328,6 +328,7 @@ def test_merge_buffer_commands_when_not_same_index():
 
         assert len(args[0]) == 2
 
+
 def test_merge_buffer_commands_when_same_index():
     ssd = SSD(FileManager())
     commands = [
@@ -353,6 +354,7 @@ def test_merge_buffer_commands_when_same_index():
         assert buffer_written.data == "0xAAAABBBB"
 
         assert len(args[0]) == 2
+
 
 def test_merge_buffer_commands_when_same_index_with_erase_range_1():
     ssd = SSD(FileManager())
@@ -380,38 +382,6 @@ def test_merge_buffer_commands_when_same_index_with_erase_range_1():
 
         assert len(args[0]) == 2
 
-def test_merge_buffer_commands_when_erase_range_2():
-    ssd = SSD(FileManager())
-    commands = [
-        [None, "W", "12", "0xAAAABBBB"]
-    ]
-    initial_buffers = [Buffer(command="E", lba=12, data="", range=2),
-                       Buffer(command="W", lba=22, data="0xABCDABCD", range="")]
-
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
-        ssd.execute_command(commands[0])
-
-        args, kwargs = mock_set_buffer.call_args
-        buffer_written = args[0][0]
-        assert buffer_written.command == "E"
-        assert buffer_written.lba == 13
-        assert buffer_written.data == ""
-        assert buffer_written.range == 1
-
-        buffer_written = args[0][1]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 22
-        assert buffer_written.data == "0xABCDABCD"
-
-        buffer_written = args[0][2]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 12
-        assert buffer_written.data == "0xAAAABBBB"
-
-        assert len(args[0]) == 3
-
 
 def test_merge_buffer_commands_when_erase_range_2():
     ssd = SSD(FileManager())
@@ -446,4 +416,158 @@ def test_merge_buffer_commands_when_erase_range_2():
         assert len(args[0]) == 3
 
 
+def test_merge_buffer_commands_when_erase_range_2():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "W", "12", "0xAAAABBBB"]
+    ]
+    initial_buffers = [Buffer(command="E", lba=12, data="", range=2),
+                       Buffer(command="W", lba=22, data="0xABCDABCD", range="")]
 
+    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
+                                                                                        mock_open()) as mocked_open, \
+            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+        ssd.execute_command(commands[0])
+
+        args, kwargs = mock_set_buffer.call_args
+        buffer_written = args[0][0]
+        assert buffer_written.command == "E"
+        assert buffer_written.lba == 13
+        assert buffer_written.data == ""
+        assert buffer_written.range == 1
+
+        buffer_written = args[0][1]
+        assert buffer_written.command == "W"
+        assert buffer_written.lba == 22
+        assert buffer_written.data == "0xABCDABCD"
+
+        buffer_written = args[0][2]
+        assert buffer_written.command == "W"
+        assert buffer_written.lba == 12
+        assert buffer_written.data == "0xAAAABBBB"
+
+        assert len(args[0]) == 3
+
+
+def test_command_buffer_test_erase1():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "E", "10", 3]
+    ]
+    initial_buffers = [
+        Buffer(command="E", lba=12, data="", range=2),
+    ]
+
+    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
+                                                                                        mock_open()) as mocked_open, \
+            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+        ssd.execute_command(commands[0])
+
+        args, kwargs = mock_set_buffer.call_args
+        buffer_written = args[0][0]
+        assert buffer_written.command == "E"
+        assert buffer_written.lba == 10
+        assert buffer_written.data == ""
+        assert buffer_written.range == 4
+
+        assert len(args[0]) == 1
+
+
+def test_command_buffer_test_erase_same_range():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "E", "15", 5]
+    ]
+    initial_buffers = [
+        Buffer(command="E", lba=15, data="", range=5),
+    ]
+
+    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
+                                                                                        mock_open()) as mocked_open, \
+            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+        ssd.execute_command(commands[0])
+
+        args, kwargs = mock_set_buffer.call_args
+        buffer_written = args[0][0]
+        assert buffer_written.command == "E"
+        assert buffer_written.lba == 15
+        assert buffer_written.data == ""
+        assert buffer_written.range == 5
+
+        assert len(args[0]) == 1
+
+
+def test_command_buffer_test_erase_over10():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "E", "21", 5]
+    ]
+    initial_buffers = [
+        Buffer(command="E", lba=16, data="", range=9),
+    ]
+
+    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
+                                                                                        mock_open()) as mocked_open, \
+            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+        ssd.execute_command(commands[0])
+
+        args, kwargs = mock_set_buffer.call_args
+        buffer_written1 = args[0][0]
+        assert buffer_written1.command == "E"
+        assert buffer_written1.lba == 16
+        assert buffer_written1.range == 9
+
+        buffer_written2 = args[0][1]
+        assert buffer_written2.command == "E"
+        assert buffer_written2.lba == 21
+        assert buffer_written2.range == 5
+        assert len(args[0]) == 2
+
+
+def test_command_buffer_test_erase_over10():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "E", "21", 5]
+    ]
+    initial_buffers = [
+        Buffer(command="E", lba=16, data="", range=9),
+    ]
+
+    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
+                                                                                        mock_open()) as mocked_open, \
+            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+        ssd.execute_command(commands[0])
+
+        args, kwargs = mock_set_buffer.call_args
+        buffer_written1 = args[0][0]
+        assert buffer_written1.command == "E"
+        assert buffer_written1.lba == 16
+        assert buffer_written1.range == 9
+
+        buffer_written2 = args[0][1]
+        assert buffer_written2.command == "E"
+        assert buffer_written2.lba == 21
+        assert buffer_written2.range == 5
+        assert len(args[0]) == 2
+
+
+def test_command_buffer_test_erase2():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "E", "95", 5]
+    ]
+    initial_buffers = [
+        Buffer(command="E", lba=93, data="", range=7),
+    ]
+
+    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
+                                                                                        mock_open()) as mocked_open, \
+            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+        ssd.execute_command(commands[0])
+
+        args, kwargs = mock_set_buffer.call_args
+        buffer_written1 = args[0][0]
+        assert buffer_written1.command == "E"
+        assert buffer_written1.lba == 93
+        assert buffer_written1.range == 7
+        assert len(args[0]) == 1
