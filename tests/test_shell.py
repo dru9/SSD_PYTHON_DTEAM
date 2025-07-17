@@ -1,6 +1,11 @@
 import pytest
 
-from constant import MESSAGE_HELP, MESSAGE_PASS, ShellCommandEnum
+from constant import (
+    MESSAGE_HELP,
+    MESSAGE_PASS,
+    ShellCommandEnum,
+    SIZE_LBA
+)
 from shell import Shell
 
 
@@ -48,7 +53,7 @@ def test_full_write_mock(file_mock, shell_mock):
 
 def test_erase_mock(file_mock, shell_mock):
     ret = Shell.execute_command(cmd=ShellCommandEnum.ERASE, args=[0, 5])
-    shell_mock.assert_called_with(['python', 'ssd.py', 'E', '0', '5'], text=True)
+    shell_mock.assert_called_once_with(['python', 'ssd.py', 'E', '0', '5'], text=True)
     file_mock.assert_any_call('ssd_output.txt', 'r')
     assert ret == "[Erase] Done"
 
@@ -61,9 +66,16 @@ def test_erase_range_mock(file_mock, shell_mock):
     assert ret == "[Erase Range] Done"
 
 
+def test_flush_mock(file_mock, shell_mock):
+    ret = Shell.execute_command(cmd=ShellCommandEnum.FLUSH, args=[])
+    shell_mock.assert_called_once_with(['python', 'ssd.py', 'F'], text=True)
+    file_mock.assert_any_call('ssd_output.txt', 'r')
+    assert ret == '[Flush] Done'
+
+
 def test_script_1_mock(file_mock, shell_mock):
     Shell.execute_command(cmd=ShellCommandEnum.SCRIPT_1, args=[])
-    shell_mock.assert_called()
+    shell_mock.assert_called_with(['python', 'ssd.py', 'R', '0'], text=True)
     file_mock.assert_any_call('ssd_output.txt', 'r')
 
 
@@ -82,10 +94,10 @@ def test_script_3_mock(file_mock, shell_mock):
 
 def test_script_4_mock(file_mock, shell_mock):
     ret = Shell.execute_command(cmd=ShellCommandEnum.SCRIPT_4, args=[])
-    assert ret == MESSAGE_PASS
     assert shell_mock.call_count == 1 + 30 * 49 * 3
     shell_mock.assert_called_with(['python', 'ssd.py', 'E', '98', "2"], text=True)
     file_mock.assert_any_call('ssd_output.txt', 'r')
+    assert ret == MESSAGE_PASS
 
 
 def test_read(ssd_py_path):
@@ -99,11 +111,11 @@ def test_write(ssd_py_path):
 
 
 def test_full_read(ssd_py_path):
-    res = "[Full Read]"
-    for i in range(100):
-        res += f"\nLBA {i:0>2} : 0x00000000"
+    expected = "[Full Read]"
+    for lba in range(SIZE_LBA):
+        expected += f"\nLBA {lba:0>2} : 0x00000000"
     ret = Shell.execute_command(cmd=ShellCommandEnum.FULLREAD, args=[])
-    assert ret == res
+    assert ret == expected
 
 
 def test_full_write(ssd_py_path):
@@ -133,6 +145,11 @@ def test_erase(ssd_py_path):
 def test_erase_range(ssd_py_path):
     ret = Shell.execute_command(cmd=ShellCommandEnum.ERASE_RANGE, args=[10, 30])
     assert ret == "[Erase Range] Done"
+
+
+def test_flush(ssd_py_path):
+    ret = Shell.execute_command(cmd=ShellCommandEnum.FLUSH, args=[])
+    assert ret == "[Flush] Done"
 
 
 def test_script_1(ssd_py_path):
