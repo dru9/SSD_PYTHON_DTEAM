@@ -3,6 +3,13 @@ import random
 from constant import SIZE_LBA
 
 
+def safe_int(value: str | int):
+    try:
+        return int(value)
+    except ValueError:
+        return value
+
+
 def get_random_value(num_digit: int = 8, format_hexadecimal: bool = True) -> str:
     value: int = random.randint(0, int("9" * num_digit))
     value: str = str(value).zfill(num_digit)
