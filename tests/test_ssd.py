@@ -448,6 +448,7 @@ def test_merge_buffer_commands_when_erase_range_2():
 
         assert len(args[0]) == 3
 
+
 def test_flush_buffer_when_mode_is_flush_should_execute_instruction():
     ssd = SSD(FileManager())
     commands = [
@@ -516,7 +517,6 @@ def test_flush_buffer_should_write_empty_string_when_normal():
           patch.object(FileManager, 'write_output_txt') as mock_write_buffer):
         ssd.execute_command(commands[0])
         mock_write_buffer.assert_called_once_with("")
-
 
 
 def test_command_buffer_test_erase2():
@@ -596,7 +596,7 @@ def test_command_buffer_test_erase_same_range():
 def test_command_buffer_test_erase_over10():
     ssd = SSD(FileManager())
     commands = [
-        [None, "E", "21", 5]
+        [None, "E", "22", 4]
     ]
     initial_buffers = [
         Buffer(command="E", lba=16, data="", range=9),
@@ -615,39 +615,12 @@ def test_command_buffer_test_erase_over10():
 
         buffer_written2 = args[0][1]
         assert buffer_written2.command == "E"
-        assert buffer_written2.lba == 21
-        assert buffer_written2.range == 5
+        assert buffer_written2.lba == 22
+        assert buffer_written2.range == 4
         assert len(args[0]) == 2
 
 
-def test_command_buffer_test_erase_over10():
-    ssd = SSD(FileManager())
-    commands = [
-        [None, "E", "21", 5]
-    ]
-    initial_buffers = [
-        Buffer(command="E", lba=16, data="", range=9),
-    ]
-
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
-        ssd.execute_command(commands[0])
-
-        args, kwargs = mock_set_buffer.call_args
-        buffer_written1 = args[0][0]
-        assert buffer_written1.command == "E"
-        assert buffer_written1.lba == 16
-        assert buffer_written1.range == 9
-
-        buffer_written2 = args[0][1]
-        assert buffer_written2.command == "E"
-        assert buffer_written2.lba == 21
-        assert buffer_written2.range == 5
-        assert len(args[0]) == 2
-
-
-def test_command_buffer_test_erase2():
+def test_erase_command_expands_buffer_range_by_merging():
     ssd = SSD(FileManager())
     commands = [
         [None, "E", "95", 5]
@@ -667,8 +640,50 @@ def test_command_buffer_test_erase2():
         assert buffer_written1.range == 7
         assert len(args[0]) == 1
 
-        
+
+def test_command_buffer_test_erase_same_range():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "E", "50", 6]
+    ]
+    initial_buffers = [
+        Buffer(command="E", lba=50, data="", range=6),
+    ]
+
+    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
+                                                                                        mock_open()) as mocked_open, \
+            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+        ssd.execute_command(commands[0])
+
+        args, kwargs = mock_set_buffer.call_args
+        buffer_written1 = args[0][0]
+        assert buffer_written1.command == "E"
+        assert buffer_written1.lba == 50
+        assert buffer_written1.range == 6
+        assert len(args[0]) == 1
+
+
+def test_command_buffer_erase_larger_new_range():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "E", "50", 7]
+    ]
+    initial_buffers = [
+        Buffer(command="E", lba=52, data="", range=2),
+    ]
+
+    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
+                                                                                        mock_open()) as mocked_open, \
+            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+        ssd.execute_command(commands[0])
+
+        args, kwargs = mock_set_buffer.call_args
+        buffer_written1 = args[0][0]
+        assert buffer_written1.command == "E"
+        assert buffer_written1.lba == 50
+        assert buffer_written1.range == 7
+        assert len(args[0]) == 1
+
+
 def test_execute_command_when_flush_command_invalid_should_write_error():
     run_execute_command_and_assert([None, "F", "0"], 'w', 'ERROR')
-
-
