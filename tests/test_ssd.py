@@ -515,5 +515,33 @@ def test_flush_buffer_should_write_empty_string_when_normal():
         mock_write_buffer.assert_called_once_with("")
 
 
+
+def test_command_buffer_test_erase2():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "E", "88", 6]
+    ]
+    initial_buffers = [
+        Buffer(command="E", lba=93, data="", range=7),
+    ]
+
+    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
+                                                                                        mock_open()) as mocked_open, \
+            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+        ssd.execute_command(commands[0])
+
+        args, kwargs = mock_set_buffer.call_args
+        buffer_written1 = args[0][0]
+        assert buffer_written1.command == "E"
+        assert buffer_written1.lba == 93
+        assert buffer_written1.range == 7
+        assert len(args[0]) == 2
+        buffer_written1 = args[0][1]
+        assert buffer_written1.command == "E"
+        assert buffer_written1.lba == 88
+        assert buffer_written1.range == 6
+
+
 def test_execute_command_when_flush_command_invalid_should_write_error():
     run_execute_command_and_assert([None, "F", "0"], 'w', 'ERROR')
+
