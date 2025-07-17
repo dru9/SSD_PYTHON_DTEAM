@@ -63,21 +63,21 @@ def test_write_check_file(ssd):
     ssd.file_manager.write_nand_txt.assert_called()
 
 
-@pytest.mark.skip
 def test_execute_command_when_write_normal_should_write_value():
     ssd = SSD(FileManager())
-    initial_file_data = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n'
-    mocked_open = mock_open(read_data=initial_file_data)
+    commands = [
+        [None, "W", "1", "0xAAAAAAAA"]
+    ]
+    initial_buffers = []
+    initial_file_data = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n3\t0x33333333\n4\t0x33333333\n5\t0x33333333\n6\t0x33333333\n'
+    expected = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n3\t0x33333333\n4\t0x33333333\n5\t0x33333333\n6\t0x33333333\n'
 
-    with patch('builtins.open', mocked_open):
-        args = [None, "W", "1", "0xAAAAAAAA"]
-        ssd.execute_command(args)
-
-        mocked_open.assert_has_calls([call(FILENAME, 'r')], any_order=False)
-        mocked_open.assert_has_calls([call(FILENAME, 'w')], any_order=False)
-        mocked_open.assert_has_calls([call(FILENAME_OUT, 'w')], any_order=False)
-
-        mocked_open().write.assert_any_call("")
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers) as mock_get_buffer, \
+          patch('builtins.open', mock_open(read_data=initial_file_data)) as mock_file, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer, \
+          patch.object(FileManager, 'write_output_txt') as mock_write_buffer):
+        ssd.execute_command(commands[0])
+        mock_write_buffer.assert_called_once_with("")
 
 
 def test_execute_command_when_args_is_invalid_should_write_error():
@@ -137,25 +137,6 @@ def test_filemanager_write_file(mock_file):
     file_manager = FileManager()
     result = file_manager.write_output_txt("ERROR")
     mock_file.assert_called_with('ssd_output.txt', 'w')
-
-
-@pytest.mark.skip
-def test_erase_replace_value_as_zero():
-    ssd = SSD(FileManager())
-    initial_file_data = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n'
-    expected = '0\t0x11111111\n1\t0x00000000\n2\t0x00000000\n'
-    expected_lines = expected.splitlines(keepends=True)
-
-    mock_file = mock_open(read_data=initial_file_data)
-
-    with patch('builtins.open', mock_file), patch.object(FileManager, 'write_output_txt'):
-        args = [None, "E", "1", "2"]
-        ssd.execute_command(args)
-
-        write_calls = mock_file().write.call_args_list
-
-        expected_calls = [call(line) for line in expected_lines]
-        assert write_calls == expected_calls
 
 
 def test_execute_command_when_erase_size_is_out_of_range_should_write_error():
@@ -236,7 +217,6 @@ def test_read_from_buffer_when_lba_is_cached():
 
         mock_set_buffer.assert_not_called()
         mocked_open().write.assert_called_once_with(expected_write)
-
 
 
 def test_merge_buffer_commands_when_possible():
@@ -685,7 +665,7 @@ def test_command_buffer_erase_larger_new_range():
 def test_execute_command_when_flush_command_invalid_should_write_error():
     run_execute_command_and_assert([None, "F", "0"], 'w', 'ERROR')
 
-    
+
 def test_merge_erase_buffer():
     ssd = SSD(FileManager())
     commands = [
@@ -706,7 +686,7 @@ def test_merge_erase_buffer():
         assert str(buffer_written.lba) == gt[2]
         assert str(buffer_written.range) == gt[3]
 
-@pytest.mark.skip(reason="This test is not yet implemented.")
+
 def test_merge_erase_buffer_hard():
     ssd = SSD(FileManager())
     commands = [
@@ -752,7 +732,7 @@ def test_remove_erase_buffer():
         assert str(buffer_written.lba) == gt[2]
         assert str(buffer_written.data) == gt[3]
 
-@pytest.mark.skip(reason="This test is not yet implemented.")
+
 def test_remove_erase_buffer_hard():
     ssd = SSD(FileManager())
     commands = [
@@ -776,4 +756,3 @@ def test_remove_erase_buffer_hard():
         assert str(buffer_written.command) == gt[1]
         assert str(buffer_written.lba) == gt[2]
         assert str(buffer_written.data) == gt[3]
-
