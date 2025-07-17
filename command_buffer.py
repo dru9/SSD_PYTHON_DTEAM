@@ -23,20 +23,8 @@ class Buffer:
 class BufferManager:
     def __init__(self):
         self.buffers: list[Buffer] = []
-
         # ./buffer dir + empty 파일 5개 없으면 만듬
-        if not os.path.exists(BUFFER_FOLDER):
-            os.makedirs(BUFFER_FOLDER)
-
-        file_list = os.listdir(BUFFER_FOLDER)
-        for buffer_idx in range(1, BUFFER_INDEX + 1):
-            if self._find_prefix_in_strlist(str(buffer_idx), file_list):
-                continue
-            else:
-                filepath = BUFFER_FOLDER + "/" + str(buffer_idx) + "_empty"
-                file = Path(filepath)
-                file.touch()
-
+        self.make_empty_buffer_folder_and_files()
         self._get_files_to_buffers()
 
     def _find_prefix_in_strlist(self, prefix, str_list):
@@ -44,6 +32,15 @@ class BufferManager:
             if str.startswith(prefix):
                 return True
         return False
+        
+    def make_empty_buffer_folder_and_files(self):
+        if not os.path.exists(BUFFER_FOLDER):
+            os.makedirs(BUFFER_FOLDER)
+        file_list = os.listdir(BUFFER_FOLDER)
+        for buffer_idx in range(1, BUFFER_INDEX + 1):
+            if self._find_prefix_in_strlist(str(buffer_idx), file_list):
+                continue
+            self.make_buffer_file(str(buffer_idx) + "_empty")
 
     def get_buffer(self) -> list[Buffer]:
         self._get_files_to_buffers()
@@ -60,15 +57,15 @@ class BufferManager:
 
         # Rename
         for idx, buffer in enumerate(self.buffers):
-            file_name = buffer.to_string(idx + 1)
-            filepath = BUFFER_FOLDER + "/" + file_name
-            file = Path(filepath)
-            file.touch()
+            self.make_buffer_file(buffer.to_string(idx + 1))
 
         for empty_idx in range(len(self.buffers) + 1, BUFFER_INDEX + 1):
-            filepath = BUFFER_FOLDER + "/" + str(empty_idx) + "_empty"
-            file = Path(filepath)
-            file.touch()
+            self.make_buffer_file(str(empty_idx) + '_empty')
+
+    def make_buffer_file(self, file_name):
+        filepath = BUFFER_FOLDER + "/" + file_name
+        file = Path(filepath)
+        file.touch()
 
     def _get_files_to_buffers(self):
         # ./buffer directory 내의 buffer 파일 name가져와서 self.buffers에 등록하는 역할
