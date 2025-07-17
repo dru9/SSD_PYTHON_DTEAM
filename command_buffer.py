@@ -32,6 +32,7 @@ class BufferManager:
             if str.startswith(prefix):
                 return True
         return False
+        
     def make_empty_buffer_folder_and_files(self):
         if not os.path.exists(BUFFER_FOLDER):
             os.makedirs(BUFFER_FOLDER)
