@@ -109,7 +109,7 @@ class SSD:
         self.buffer_manager.set_buffer([])
 
     def execute(self, args) -> None:
-        if not self._validate_cmd_args(args):
+        if not self._validate_command(args):
             return
 
         mode = args[1]
@@ -125,7 +125,7 @@ class SSD:
 
         self._execute_command(**kwargs)
 
-    def _validate_cmd_args(self, args):
+    def _validate_command(self, args):
 
         def check_error(msg: str) -> None:
             print(msg)
