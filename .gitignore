@@ -1,6 +1,6 @@
 /.venv/
 /.idea/
-/buffer/
+buffer/
 __pycache__
 **/__pycache__/
 ssd_nand.txt
