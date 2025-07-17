@@ -543,7 +543,97 @@ def test_command_buffer_test_erase2():
         assert buffer_written1.lba == 88
         assert buffer_written1.range == 6
 
-
 def test_execute_command_when_flush_command_invalid_should_write_error():
     run_execute_command_and_assert([None, "F", "0"], 'w', 'ERROR')
+    
+    
+def test_merge_erase_buffer():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "E", "20", "2"],
+        [None, "E", "21", "2"],
+    ]
+    expected = [
+        [None, "E", "20", "3"],
+    ]
+    ssd.buffer_manager.set_buffer([])
+    for command in commands:
+        ssd.execute_command(command)
+    buffers = ssd.buffer_manager.get_buffer()
+    assert len(expected) == len(buffers)
 
+    for gt, buffer_written in zip(expected, buffers):
+        assert str(buffer_written.command) == gt[1]
+        assert str(buffer_written.lba) == gt[2]
+        assert str(buffer_written.range) == gt[3]
+
+@pytest.mark.skip(reason="This test is not yet implemented.")
+def test_merge_erase_buffer_hard():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "E", "20", "1"],
+        [None, "E", "21", "2"],
+    ]
+    expected = [
+        [None, "E", "20", "3"],
+    ]
+    ssd.buffer_manager.set_buffer([])
+    for command in commands:
+        ssd.execute_command(command)
+    buffers = ssd.buffer_manager.get_buffer()
+    assert len(expected) == len(buffers)
+
+    for gt, buffer_written in zip(expected, buffers):
+        assert str(buffer_written.command) == gt[1]
+        assert str(buffer_written.lba) == gt[2]
+        assert str(buffer_written.range) == gt[3]
+
+
+def test_remove_erase_buffer():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "E", "20", "3"],
+        [None, "W", "20", "0xABCDABC0"],
+        [None, "W", "21", "0xABCDABC0"],
+        [None, "W", "22", "0xABCDABC0"],
+    ]
+    expected = [
+        [None, "W", "20", "0xABCDABC0"],
+        [None, "W", "21", "0xABCDABC0"],
+        [None, "W", "22", "0xABCDABC0"],
+    ]
+    ssd.buffer_manager.set_buffer([])
+    for command in commands:
+        ssd.execute_command(command)
+    buffers = ssd.buffer_manager.get_buffer()
+    assert len(expected) == len(buffers)
+
+    for gt, buffer_written in zip(expected, buffers):
+        assert str(buffer_written.command) == gt[1]
+        assert str(buffer_written.lba) == gt[2]
+        assert str(buffer_written.data) == gt[3]
+
+@pytest.mark.skip(reason="This test is not yet implemented.")
+def test_remove_erase_buffer_hard():
+    ssd = SSD(FileManager())
+    commands = [
+        [None, "E", "20", "3"],
+        [None, "W", "21", "0xABCDABC0"],
+        [None, "W", "20", "0xABCDABC0"],
+        [None, "W", "22", "0xABCDABC0"],
+    ]
+    expected = [
+        [None, "W", "21", "0xABCDABC0"],
+        [None, "W", "20", "0xABCDABC0"],
+        [None, "W", "22", "0xABCDABC0"],
+    ]
+    ssd.buffer_manager.set_buffer([])
+    for command in commands:
+        ssd.execute_command(command)
+    buffers = ssd.buffer_manager.get_buffer()
+    assert len(expected) == len(buffers)
+
+    for gt, buffer_written in zip(expected, buffers):
+        assert str(buffer_written.command) == gt[1]
+        assert str(buffer_written.lba) == gt[2]
+        assert str(buffer_written.data) == gt[3]
