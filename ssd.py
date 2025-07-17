@@ -1,7 +1,7 @@
 import os
 import sys
 
-from command_buffer import BufferManager, Buffer
+from command_buffer import Buffer, BufferManager
 from constant import FILENAME, FILENAME_OUT, SIZE_LBA
 
 
@@ -196,9 +196,7 @@ class SSD:
         # flush 조건 체크
         if len(buffers) == 5:
             self.flush(buffers)
-            new_buffers = [Buffer(mode, lba, data, erase_size)]
-            self.buffer_manager.set_buffer(new_buffers)
-            return
+            buffers = self.buffer_manager.get_buffer()
 
         # Buffer에 접근 먼저 해서 알고리즘 동작하게 하기.
         # R
@@ -302,6 +300,7 @@ class SSD:
             new_buffers.append(new_buffer)
         # 마지막에 rename
         self.buffer_manager.set_buffer(new_buffers)
+        self.file_manager.write_output_txt("")
 
 
 if __name__ == "__main__":
