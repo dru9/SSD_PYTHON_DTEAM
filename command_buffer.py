@@ -6,7 +6,7 @@ BUFFER_FOLDER = "./buffer"
 
 
 class Buffer:
-    def __init__(self, command= '', lba=0, data='', range= 0):
+    def __init__(self, command='', lba=0, data='', range=0):
         self.command = command
         self.lba = lba
         self.data = data  # Write 용
@@ -41,7 +41,7 @@ class BufferManager:
 
     def _find_prefix_in_strlist(self, prefix, str_list):
         for str in str_list:
-            if prefix in str:
+            if str.startswith(prefix):
                 return True
         return False
 
