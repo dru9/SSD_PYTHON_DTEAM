@@ -123,59 +123,47 @@ class SSD:
         self.file_manager.write_output_txt("")
 
     def _args_valid_guard_clauses(self, args):
+        def _error(message):
+            print(message)
+            self.file_manager.write_output_txt("ERROR")
+            return False
+
         argument_len = len(args)
         if argument_len < 2:
-            print("At least one argument are required")
-            self.file_manager.write_output_txt("ERROR")
-            return False
+            return _error("At least one argument are required")
 
         mode = args[1]
-        if mode not in ("W", "R", "E", "F"):
-            print("Mode should be in ('W', 'R', 'E', 'F')")
-            self.file_manager.write_output_txt("ERROR")
-            return False
+        valid_modes = {"W", "R", "E", "F"}
+        if mode not in valid_modes:
+            return _error("Mode should be in ('W', 'R', 'E', 'F')")
 
-        if mode == "W" and argument_len != 4:
-            print("Mode W need lba and value")
-            self.file_manager.write_output_txt("ERROR")
-            return False
+        # mode별 기대하는 argument 개수와 메시지
+        expected_args = {
+            "W": (4, "Mode W need lba and value"),
+            "R": (3, "Mode R need lba"),
+            "E": (4, "Mode E need lba and size"),
+            "F": (2, "Mode F need only command"),
+        }
 
-        if mode == "R" and argument_len != 3:
-            print("Mode R need lba")
-            self.file_manager.write_output_txt("ERROR")
-            return False
-
-        if mode == "E" and argument_len != 4:
-            print("Mode E need lba and size")
-            self.file_manager.write_output_txt("ERROR")
-            return False
-
-        if mode == "F" and argument_len != 2:
-            print("Mode F need only command")
-            self.file_manager.write_output_txt("ERROR")
-            return False
+        expected_len, error_msg = expected_args[mode]
+        if argument_len != expected_len:
+            return _error(error_msg)
 
         if mode == "F":
             return True
 
         lba = self._parse_int_or_empty(args[2])
-
         if lba == "" or not self._index_valid(args[2]):
-            print("The index should be an integer among 0 ~ 99")
-            self.file_manager.write_output_txt("ERROR")
-            return False
+            return _error("The index should be an integer among 0 ~ 99")
 
         if mode == "W" and not self.check_hex(args[3]):
-            print("Value should to be hex string")
-            self.file_manager.write_output_txt("ERROR")
-            return False
+            return _error("Value should to be hex string")
 
         if mode == "E":
             size = self._parse_int_or_empty(args[3])
             if size == "" or size < 1 or size > 10 or lba + size > SIZE_LBA:
-                print("Size should be integer among 1 ~ 10 and lba + size must be smaller than 101")
-                self.file_manager.write_output_txt("ERROR")
-                return False
+                return _error("Size should be integer among 1 ~ 10 and lba + size must be smaller than 101")
+
         return True
 
     def flush(self, buffers):
