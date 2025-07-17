@@ -187,3 +187,16 @@ def test_run_function(monkeypatch, capsys):
     ret = Shell.run()
     captured = capsys.readouterr()
     assert captured.out == "[Read] ERROR\n"
+    
+    
+def test_run_script(ssd_py_path, capsys):
+    test_script = "test_shell_script.txt"
+    expected = ('1_FullWriteAndReadCompare   ___   Run...Pass\n'
+                '2_PartialLBAWrite           ___   Run...Pass\n')
+    with open(test_script, "w") as f:
+        f.write("1_FullWriteAndReadCompare\n2_PartialLBAWrite")
+
+    Shell.run_script(script=test_script)
+
+    captured = capsys.readouterr()
+    assert captured.out == expected

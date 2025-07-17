@@ -351,7 +351,7 @@ class Shell:
     @classmethod
     def run_script(cls, script: str = FILENAME_SCRIPT_DEFAULT) -> None:
         try:
-            with open(cmd_file, "r") as f:
+            with open(script, "r") as f:
                 cmds = f.readlines()
 
         except FileNotFoundError:
