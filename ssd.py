@@ -1,6 +1,7 @@
 import os
 import sys
 
+import utils
 from command_buffer import BufferManager, Buffer
 from constant import FILENAME, FILENAME_OUT, SIZE_LBA
 
@@ -78,26 +79,6 @@ class SSD:
             self.file_manager.write_output_txt("ERROR")
         self.file_manager.write_output_txt("")
 
-    def check_hex(self, data):
-        if len(data) != 10:
-            return False
-        if not data[:2] == "0x":
-            return False
-        try:
-            int(data[2:], 16)
-            return True
-        except ValueError:
-            return False
-
-    def _index_valid(self, num):
-        return num.isdigit() and 0 <= int(num) <= SIZE_LBA - 1
-
-    def _parse_int_or_empty(self, num):
-        try:
-            return int(num)
-        except ValueError:
-            return ""
-
     def execute_command(self, args):
         if not self._args_valid_guard_clauses(args):
             return
@@ -114,7 +95,7 @@ class SSD:
             elif mode == "R":
                 self._execute_command_with_buffers(mode=mode, lba=lba)
             elif mode == "E":
-                size = self._parse_int_or_empty(args[3])
+                size = utils.parse_integer(args[3])
                 self._execute_command_with_buffers(mode=mode, lba=lba, erase_size=size)
 
     def erase(self, lba, size):
@@ -152,15 +133,15 @@ class SSD:
         if mode == "F":
             return True
 
-        lba = self._parse_int_or_empty(args[2])
-        if lba == "" or not self._index_valid(args[2]):
+        lba = utils.parse_integer(args[2])
+        if lba == "" or not utils.validate_index(args[2], valid_size=SIZE_LBA):
             return _error("The index should be an integer among 0 ~ 99")
 
-        if mode == "W" and not self.check_hex(args[3]):
+        if mode == "W" and not utils.validate_hexadecimal(args[3]):
             return _error("Value should to be hex string")
 
         if mode == "E":
-            size = self._parse_int_or_empty(args[3])
+            size = utils.parse_integer(args[3])
             if size == "" or size < 1 or size > 10 or lba + size > SIZE_LBA:
                 return _error("Size should be integer among 1 ~ 10 and lba + size must be smaller than 101")
 
@@ -179,7 +160,7 @@ class SSD:
         self.buffer_manager.set_buffer([])
 
     def _process_read_mode(self, buffers, lba):
-        if not self.read_buffer_first(buffers, lba):
+        if not self.read_first_buffer(buffers, lba):
             self.read(lba)
 
     def _execute_command_with_buffers(self, mode, lba=None, data='', erase_size=0):
@@ -313,20 +294,17 @@ class SSD:
             new_buffers.append(new_buffer)
         return new_buffers
 
-    def read_buffer_first(self, buffers, lba):
-        for _, each_buffer in reversed(list(enumerate(buffers))):
-            if each_buffer.command == "W":
-                if each_buffer.lba == lba:
-                    self.file_manager.write_output_txt(each_buffer.data)
-                    return True
-            if each_buffer.command == "E":
-                if self.check_read_lba_is_in_erase_range(each_buffer, lba):
-                    self.file_manager.write_output_txt("0x00000000")
-                    return True
-        return False
+    def read_first_buffer(self, buffers, lba):
+        for _, buffer in reversed(list(enumerate(buffers))):
+            if buffer.command == "W" and buffer.lba == lba:
+                self.file_manager.write_output_txt(buffer.data)
+                return True
 
-    def check_read_lba_is_in_erase_range(self, buffer, lba):
-        return buffer.lba <= lba < buffer.lba + buffer.range
+            if buffer.command == "E" and buffer.lba <= lba < buffer.lba + buffer.range:
+                self.file_manager.write_output_txt("0x00000000")
+                return True
+
+        return False
 
     def _flush_when_buffer_are_full_or_flush_mode(self, buffers, mode):
         # flush 조건 체크

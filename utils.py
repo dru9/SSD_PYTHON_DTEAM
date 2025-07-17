@@ -1,4 +1,5 @@
 import random
+from typing import Union
 
 from constant import SIZE_LBA
 
@@ -59,3 +60,33 @@ def validate_erase_range_args(start_lba: int, end_lba: int) -> bool:
         return False
 
     return True
+
+
+def validate_hexadecimal(data: str) -> bool:
+    num_hex = 16
+    num_digit = 8
+    header = "0x"
+
+    if not data[:2] == header:
+        return False
+
+    if len(data) != len(header) + num_digit:
+        return False
+
+    try:
+        int(data[len(header):], num_hex)
+        return True
+
+    except ValueError:
+        return False
+
+
+def validate_index(num: str, valid_size: int) -> bool:
+    return num.isdigit() and 0 <= int(num) <= valid_size - 1
+
+
+def parse_integer(num: str) -> Union[int, str]:
+    try:
+        return int(num)
+    except ValueError:
+        return ""
