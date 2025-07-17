@@ -1,7 +1,7 @@
 import os
 import sys
 
-from command_buffer import Buffer, BufferManager
+from command_buffer import BufferManager, Buffer
 from constant import FILENAME, FILENAME_OUT, SIZE_LBA
 
 
@@ -247,10 +247,7 @@ class SSD:
                 # 1. W인 경우
                 if b.command == "W":
                     if b.lba >= lba and b.lba < lba + erase_size:
-                        new_buffers += buffers[i + 1:]
-                        new_buffers.append(new_buffer)
-                        is_need_append_new_buffer = False
-                        break
+                        continue
                     new_buffers.append(b)
                     continue
                 # 2. E인 경우
@@ -301,7 +298,6 @@ class SSD:
         # 마지막에 rename
         self.buffer_manager.set_buffer(new_buffers)
         self.file_manager.write_output_txt("")
-
 
 if __name__ == "__main__":
     ssd = SSD(FileManager())
