@@ -4,7 +4,7 @@ import sys  # noqa
 from typing import Callable, Optional
 
 import utils
-from commands import EraseShellCommand, ReadShellCommand, WriteShellCommand
+from commands import EraseShellCommand, FlushShellCommand, ReadShellCommand, WriteShellCommand
 from constant import (
     FILENAME_MAIN_SSD,
     FILENAME_OUT,
@@ -29,6 +29,19 @@ ONE_ARGS_REQUIRE_COMMANDS = [
 
 
 class SSDController:
+
+    @classmethod
+    def _cache_inout(cls) -> str:
+        try:
+            with open(FILENAME_OUT, "r") as f:
+                content = f.read().strip()
+                return content
+
+        except FileNotFoundError:
+            return MESSAGE_ERROR
+
+        except Exception:
+            return MESSAGE_ERROR
 
     @classmethod
     def read(cls, lba: int) -> str:
@@ -66,17 +79,17 @@ class SSDController:
         return MESSAGE_ERROR
 
     @classmethod
-    def _cache_inout(cls) -> str:
-        try:
-            with open(FILENAME_OUT, "r") as f:
-                content = f.read().strip()
-                return content
-
-        except FileNotFoundError:
+    def flush(cls):
+        cmd = FlushShellCommand(FILENAME_MAIN_SSD)
+        is_ssd_run = cmd.execute()
+        if not is_ssd_run:
             return MESSAGE_ERROR
 
-        except Exception:
-            return MESSAGE_ERROR
+        res = cls._cache_inout()
+        if res == "":
+            return MESSAGE_DONE
+
+        return MESSAGE_ERROR
 
 
 class ShellParser:
@@ -189,6 +202,15 @@ class CommandExecutor:
 
         cls.logging("... COMPLETE")
         return "[Erase Range] Done"
+
+    @classmethod
+    def flush(cls):
+        ret = cls.ssd_controller.flush()
+        if ret == MESSAGE_ERROR:
+            return "[Flush] ERROR"
+
+        cls.logging("... COMPLETE")
+        return "[Flush] Done"
 
 
 class ScriptExecutor:
