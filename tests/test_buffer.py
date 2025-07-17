@@ -1,4 +1,4 @@
-from command_buffer import BufferManager, Buffer
+from buffer import BufferManager, Buffer
 
 
 def test_bufferManager_flow1():

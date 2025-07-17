@@ -3,7 +3,7 @@ import sys
 from typing import Any, Mapping
 
 import utils
-from command_buffer import BufferManager, Buffer
+from buffer import Buffer, BufferManager
 from constant import FILENAME, FILENAME_OUT, SIZE_LBA
 
 
@@ -108,7 +108,7 @@ class SSD:
                 break
         self.buffer_manager.set_buffer([])
 
-    def execute(self, args) -> None:
+    def run(self, args) -> None:
         if not self._validate_command(args):
             return
 
@@ -199,7 +199,7 @@ class SSD:
         self.buffer_manager.set_buffer(new_buffers)
         self.file_manager.write_output("")
 
-    def _process_read(self, buffers, lba):
+    def _process_read(self, buffers: list[Buffer], lba: int) -> None:
         """Conditionally read from the first buffer."""
         from_first_buffer: bool = False
         for _, buffer in reversed(list(enumerate(buffers))):
@@ -216,7 +216,8 @@ class SSD:
         if not from_first_buffer:
             self.read(lba)
 
-    def _process_write(self, buffers, lba, new_buffer):
+    def _process_write(self, buffers: list[Buffer], lba: int, new_buffer: Buffer) -> list[Buffer]:
+
         def _handle_write(buffers, each_buffer, i, is_need_to_append, lba, new_buffer, new_buffers):
             if each_buffer.lba != lba:
                 new_buffers.append(each_buffer)
@@ -239,21 +240,21 @@ class SSD:
 
         new_buffers = []
         is_need_to_append = True
-        for i, each_buffer in enumerate(buffers):
-            if each_buffer.command == "W":
+        for i, buffer in enumerate(buffers):
+            if buffer.command == "W":
                 is_need_to_append, new_buffers = _handle_write(
                     buffers,
-                    each_buffer,
+                    buffer,
                     i,
                     is_need_to_append,
                     lba,
                     new_buffer,
                     new_buffers,
                 )
-            elif each_buffer.command == "E":
+            elif buffer.command == "E":
                 is_need_to_append, new_buffers = _handle_erase(
                     buffers,
-                    each_buffer,
+                    buffer,
                     i,
                     is_need_to_append,
                     lba,
@@ -268,7 +269,8 @@ class SSD:
 
         return new_buffers
 
-    def _process_erase(self, buffers, erase_size, lba, new_buffer):
+    def _process_erase(self, buffers: list[Buffer], erase_size: int, lba: int, new_buffer: Buffer) -> list[Buffer]:
+
         def _is_erase_range_same(each_buffer, erase_size, lba):
             return each_buffer.lba == lba and each_buffer.lba + each_buffer.range == lba + erase_size
 
@@ -286,7 +288,7 @@ class SSD:
             else:
                 return False
 
-        def _continue_check_for_erase_range_overlap(each_buffer, erase_size, lba, new_buffers):
+        def _continue_to_check_overlap(each_buffer, erase_size, lba, new_buffers):
             if _check_merge_range_is_bigger_than_10(each_buffer, erase_size, lba):
                 new_buffers.append(each_buffer)
                 return True
@@ -304,31 +306,32 @@ class SSD:
 
         new_buffers = []
         is_need_to_append = True
-        for i, each_buffer in enumerate(buffers):
-            if each_buffer.command == "W":
-                if lba > each_buffer.lba or each_buffer.lba >= lba + erase_size:
-                    new_buffers.append(each_buffer)
-            elif each_buffer.command == "E":
-                if _is_erase_range_same(each_buffer, erase_size, lba):
-                    is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, new_buffer, new_buffers)
-                    break
-                elif _is_erase_range_overlap(each_buffer, erase_size, lba):
-                    if _continue_check_for_erase_range_overlap(each_buffer, erase_size, lba, new_buffers):
-                        continue
+        for i, buffer in enumerate(buffers):
+            if buffer.command == "W" and (lba > buffer.lba or buffer.lba >= lba + erase_size):
+                new_buffers.append(buffer)
 
-                    if each_buffer.lba <= lba:
-                        if each_buffer.lba + each_buffer.range > lba + erase_size:
-                            new_buffers += buffers[i:]
-                            is_need_to_append = False
-                            break
+            elif buffer.command == "E" and _is_erase_range_same(buffer, erase_size, lba):
+                is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, new_buffer, new_buffers)
+                break
 
-                        each_buffer.range = lba + erase_size - each_buffer.lba
-                        is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, each_buffer, new_buffers)
+            elif buffer.command == "E" and _is_erase_range_overlap(buffer, erase_size, lba):
+                if _continue_to_check_overlap(buffer, erase_size, lba, new_buffers):
+                    continue
+
+                if buffer.lba <= lba:
+                    if buffer.lba + buffer.range > lba + erase_size:
+                        new_buffers += buffers[i:]
+                        is_need_to_append = False
                         break
-                    else:
-                        new_range = each_buffer.lba + each_buffer.range - lba
-                        if new_range > erase_size:
-                            new_buffer.range = new_range
+
+                    buffer.range = lba + erase_size - buffer.lba
+                    is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, buffer, new_buffers)
+                    break
+
+                new_range = buffer.lba + buffer.range - lba
+                if new_range > erase_size:
+                    new_buffer.range = new_range
+
         if is_need_to_append:
             new_buffers.append(new_buffer)
         return new_buffers
@@ -336,4 +339,4 @@ class SSD:
 
 if __name__ == "__main__":
     ssd = SSD()
-    ssd.execute(sys.argv)
+    ssd.run(sys.argv)
