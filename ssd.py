@@ -2,7 +2,7 @@ import os
 import sys
 
 from command_buffer import BufferManager, Buffer
-from constant import FILENAME, FILENAME_OUT
+from constant import FILENAME, FILENAME_OUT, SIZE_LBA
 
 
 class FileManager:
@@ -12,7 +12,7 @@ class FileManager:
     def init_nand_txt(self):
         if not os.path.exists(FILENAME):
             with open(FILENAME, "w") as f:
-                for i in range(100):
+                for i in range(SIZE_LBA):
                     f.write(f"{i}\t0x00000000\n")
 
     def _read_whole_contents_nand_txt(self) -> dict[int, str]:
@@ -90,7 +90,7 @@ class SSD:
             return False
 
     def _index_valid(self, num):
-        return num.isdigit() and int(num) >= 0 and int(num) <= 99
+        return num.isdigit() and int(num) >= 0 and int(num) <= SIZE_LBA - 1
 
     def _parse_int_or_empty(self, num):
         try:
@@ -173,7 +173,7 @@ class SSD:
 
         if mode == "E":
             size = self._parse_int_or_empty(args[3])
-            if size == "" or size < 1 or size > 10 or lba + size > 100:
+            if size == "" or size < 1 or size > 10 or lba + size > SIZE_LBA:
                 print("Size should be integer among 1 ~ 10 and lba + size must be smaller than 101")
                 self.file_manager.write_output_txt("ERROR")
                 return False
@@ -267,7 +267,7 @@ class SSD:
                             continue
                         if b.lba <= lba:
                             # b.lba + b.range > 100 또는 lba + erase_size > 100  넘는 경우에도 추가하면 안돼!
-                            if lba + erase_size > 100 or b.lba + b.range > 100:
+                            if lba + erase_size > SIZE_LBA or b.lba + b.range > SIZE_LBA:
                                 new_buffers.append(b)
                                 continue
 
@@ -284,7 +284,7 @@ class SSD:
 
                         if lba < b.lba:
                             # lba + range  > 100 or b.lba + b.range > 100 넘는 경우에도 추가하면 안돼
-                            if lba + erase_size > 100 or b.lba + b.range > 100:
+                            if lba + erase_size > SIZE_LBA or b.lba + b.range > SIZE_LBA:
                                 new_buffers.append(b)
                                 continue
 
