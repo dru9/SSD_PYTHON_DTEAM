@@ -105,19 +105,17 @@ class SSD:
         mode = args[1]
 
         if mode == "F":
-            buffers = self.buffer_manager.get_buffer()
-            self.flush(buffers)
-            self.file_manager.write_output_txt("")
-            return
-        lba = int(args[2])
-        if mode == "W":
-            hex = args[3]
-            self._execute_command_new(mode=mode, lba=lba, data=hex)
-        elif mode == "R":
-            self._execute_command_new(mode=mode, lba=lba)
-        elif mode == "E":
-            size = self._parse_int_or_empty(args[3])
-            self._execute_command_new(mode=mode, lba=lba, erase_size=size)
+            self._execute_command_with_buffers(mode=mode)
+        else:
+            lba = int(args[2])
+            if mode == "W":
+                hex_string = args[3]
+                self._execute_command_with_buffers(mode=mode, lba=lba, data=hex_string)
+            elif mode == "R":
+                self._execute_command_with_buffers(mode=mode, lba=lba)
+            elif mode == "E":
+                size = self._parse_int_or_empty(args[3])
+                self._execute_command_with_buffers(mode=mode, lba=lba, erase_size=size)
 
     def erase(self, lba, size):
         if not self.file_manager.erase_nand_txt(lba, size):
@@ -192,12 +190,13 @@ class SSD:
                 break
         self.buffer_manager.set_buffer([])
 
-    def _execute_command_new(self, mode, lba: int, data='', erase_size=0):
+    def _execute_command_with_buffers(self, mode, lba=None, data='', erase_size=0):
         buffers = self.buffer_manager.get_buffer()
-        # flush 조건 체크
-        if len(buffers) == 5:
-            self.flush(buffers)
-            buffers = self.buffer_manager.get_buffer()
+        buffers = self._flush_when_buffer_are_full_or_flush_mode(buffers, mode)
+        if mode == "F":
+            self.file_manager.write_output_txt("")
+            return
+
 
         # Buffer에 접근 먼저 해서 알고리즘 동작하게 하기.
         # R
@@ -299,6 +298,14 @@ class SSD:
         # 마지막에 rename
         self.buffer_manager.set_buffer(new_buffers)
         self.file_manager.write_output_txt("")
+
+    def _flush_when_buffer_are_full_or_flush_mode(self, buffers, mode):
+        # flush 조건 체크
+        if len(buffers) == 5 or mode == "F":
+            self.flush(buffers)
+            buffers = self.buffer_manager.get_buffer()
+        return buffers
+
 
 if __name__ == "__main__":
     ssd = SSD(FileManager())
