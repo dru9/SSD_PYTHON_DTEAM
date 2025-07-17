@@ -201,6 +201,7 @@ class SSD:
         else:
             return
 
+        new_buffers = self.merge_overall(new_buffers)
         self.buffer_manager.set_buffer(new_buffers)
         self.file_manager.write_output_txt("")
 
@@ -209,7 +210,7 @@ class SSD:
             return each_buffer.lba == lba and each_buffer.lba + each_buffer.range == lba + erase_size
 
         def _is_erase_range_overlap(each_buffer, erase_size, lba):
-            return ((each_buffer.lba <= lba < each_buffer.lba + each_buffer.range) or
+            return ((each_buffer.lba <= lba <= each_buffer.lba + each_buffer.range) or
                     (lba <= each_buffer.lba < lba + erase_size))
 
         def _check_merge_range_is_bigger_than_10(each_buffer, erase_size, lba):
@@ -334,6 +335,29 @@ class SSD:
             self.flush(buffers)
             buffers = self.buffer_manager.get_buffer()
         return buffers
+
+    def merge_overall(self, new_buffers):
+        merge_buffers = []
+        command_list = [""] * 100
+        for buffer in new_buffers:
+            if buffer.command == "W":
+                command_list[buffer.lba] = buffer.command
+            elif buffer.command == "E":
+                for each_lba in range(buffer.lba, buffer.lba + buffer.range):
+                    command_list[each_lba] = buffer.command
+
+        for buffer in new_buffers:
+            if buffer.command == "W" and command_list[buffer.lba] == buffer.command:
+                merge_buffers.append(buffer)
+            elif buffer.command == "E":
+                valid_command_check = True
+                for each_lba in range(buffer.lba, buffer.lba + buffer.range):
+                    if command_list[each_lba] != buffer.command:
+                        valid_command_check = False
+                        break
+                if valid_command_check:
+                    merge_buffers.append(buffer)
+        return merge_buffers
 
 
 if __name__ == "__main__":
