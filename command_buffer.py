@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 from pathlib import Path
 
 BUFFER_INDEX = 5
@@ -6,18 +7,22 @@ BUFFER_FOLDER = "./buffer"
 
 
 class Buffer:
-    def __init__(self, command='', lba=0, data='', range=0):
+
+    def __init__(self, command: str = "", lba: int = 0, data: str = "", range: int = 0) -> None:
         self.command = command
         self.lba = lba
-        self.data = data  # Write 용
-        self.range = range  # Erase 용
+        self.data = data
+        self.range = range
+        self.idx: Optional[int] = None
 
-    def to_string(self, idx):
-        if self.command == 'W':
-            return f'{idx}_{self.command}_{self.lba}_{self.data}'
+    def __str__(self) -> str:
+        """This is pythonic."""
+        if self.command == "W":
+            return f"{self.idx}_{self.command}_{self.lba}_{self.data}"
         elif self.command == 'E':
-            return f'{idx}_{self.command}_{self.lba}_{self.range}'
-        return f'{idx}_empty'
+            return f"{self.idx}_{self.command}_{self.lba}_{self.range}"
+        else:
+           return f"{self.idx}_empty"
 
 
 class BufferManager:
@@ -57,7 +62,8 @@ class BufferManager:
 
         # Rename
         for idx, buffer in enumerate(self.buffers):
-            self.make_buffer_file(buffer.to_string(idx + 1))
+            buffer.idx = idx + 1
+            self.make_buffer_file(str(buffer))
 
         for empty_idx in range(len(self.buffers) + 1, BUFFER_INDEX + 1):
             self.make_buffer_file(str(empty_idx) + '_empty')

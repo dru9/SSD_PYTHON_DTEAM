@@ -32,9 +32,9 @@ def test_bufferManager_flow2():
 
 def test_buffer_empty():
     buffer = Buffer()
+    buffer.idx = 1
     expected = "1_empty"
-    result = buffer.to_string(1)
-
+    result = str(buffer)
     assert result == expected
 
 
@@ -43,9 +43,9 @@ def test_buffer_write():
     buffer.command = "W"
     buffer.lba = 20
     buffer.data = "0x12341234"
+    buffer.idx = 2
     expected = "2_W_20_0x12341234"
-    result = buffer.to_string(2)
-
+    result = str(buffer)
     assert result == expected
 
 
@@ -54,9 +54,9 @@ def test_buffer_erase():
     buffer.command = "E"
     buffer.lba = 10
     buffer.range = 4
+    buffer.idx = 2
     expected = "2_E_10_4"
-    result = buffer.to_string(2)
-
+    result = str(buffer)
     assert result == expected
 
 

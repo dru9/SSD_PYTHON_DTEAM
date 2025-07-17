@@ -196,6 +196,7 @@ class SSD:
         self.file_manager.write_output("")
 
     def _process_read_mode(self, buffers, lba):
+        """Read first buffer."""
         if not self.read_first_buffer(buffers, lba):
             self.read(lba)
 
