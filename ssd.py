@@ -196,8 +196,20 @@ class SSD:
         self.file_manager.write_output("")
 
     def _process_read_mode(self, buffers, lba):
-        """Read first buffer."""
-        if not self.read_first_buffer(buffers, lba):
+        """Conditionally read from the first buffer."""
+        from_first_buffer: bool = False
+        for _, buffer in reversed(list(enumerate(buffers))):
+            if buffer.command == "W" and buffer.lba == lba:
+                self.file_manager.write_output(buffer.data)
+                from_first_buffer = True
+                break
+
+            if buffer.command == "E" and buffer.lba <= lba < buffer.lba + buffer.range:
+                self.file_manager.write_output("0x00000000")
+                from_first_buffer = True
+                break
+
+        if not from_first_buffer:
             self.read(lba)
 
     def _process_erase_mode(self, buffers, erase_size, lba, new_buffer):
@@ -317,17 +329,6 @@ class SSD:
 
         return new_buffers
 
-    def read_first_buffer(self, buffers, lba):
-        for _, buffer in reversed(list(enumerate(buffers))):
-            if buffer.command == "W" and buffer.lba == lba:
-                self.file_manager.write_output(buffer.data)
-                return True
-
-            if buffer.command == "E" and buffer.lba <= lba < buffer.lba + buffer.range:
-                self.file_manager.write_output("0x00000000")
-                return True
-
-        return False
 
     def _flush_when_buffer_are_full_or_flush_mode(self, buffers, mode):
         # flush 조건 체크
