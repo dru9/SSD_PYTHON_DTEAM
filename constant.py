@@ -36,7 +36,6 @@ MESSAGE_FAIL = "FAIL"
 MESSAGE_PASS = "PASS"
 MESSAGE_INVALID_SHELL_CMD = "Invalid shall command."
 MESSAGE_HELP = """
-usage: <command> [<args>]
          ／＞　 フ
         | 　_　_| 
        ／` ミ＿xノ 
@@ -46,6 +45,8 @@ usage: <command> [<args>]
 ／￣|　　 |　|　|
 (￣ヽ＿_ヽ_)__)
 ＼二) ... Dooly Let`s go !!!
+
+usage: <command> [<args>]
 
 read: read a value from the given LBA
 write: write a given value to the given LBA
