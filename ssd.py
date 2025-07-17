@@ -175,27 +175,31 @@ class SSD:
 
     def _execute_command(self, mode, lba=None, data='', erase_size=0):
         buffers = self.buffer_manager.get_buffer()
-        buffers = self._flush_when_buffer_are_full_or_flush_mode(buffers, mode)
+
+        if len(buffers) == 5 or mode == "F":
+            self.flush(buffers)
+            buffers = self.buffer_manager.get_buffer()
+
         if mode == "F":
             self.file_manager.write_output("")
             return
 
         if mode == "R":
-            self._process_read_mode(buffers, lba)
+            self._process_read(buffers, lba)
             return
 
         new_buffer = Buffer(mode, lba, data, erase_size)
         if mode == "W":
-            new_buffers = self._process_write_mode(buffers, lba, new_buffer)
+            new_buffers = self._process_write(buffers, lba, new_buffer)
         elif mode == "E":
-            new_buffers = self._process_erase_mode(buffers, erase_size, lba, new_buffer)
+            new_buffers = self._process_erase(buffers, erase_size, lba, new_buffer)
         else:
             return
 
         self.buffer_manager.set_buffer(new_buffers)
         self.file_manager.write_output("")
 
-    def _process_read_mode(self, buffers, lba):
+    def _process_read(self, buffers, lba):
         """Conditionally read from the first buffer."""
         from_first_buffer: bool = False
         for _, buffer in reversed(list(enumerate(buffers))):
@@ -212,7 +216,59 @@ class SSD:
         if not from_first_buffer:
             self.read(lba)
 
-    def _process_erase_mode(self, buffers, erase_size, lba, new_buffer):
+    def _process_write(self, buffers, lba, new_buffer):
+        def _handle_write(buffers, each_buffer, i, is_need_to_append, lba, new_buffer, new_buffers):
+            if each_buffer.lba != lba:
+                new_buffers.append(each_buffer)
+            else:
+                is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, new_buffer, new_buffers)
+            return is_need_to_append, new_buffers
+
+        def _handle_erase(buffers, each_buffer, i, is_need_to_append, lba, new_buffer, new_buffers):
+            if each_buffer.lba == lba:
+                if each_buffer.range == 1:
+                    is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, new_buffer, new_buffers)
+                if is_need_to_append:
+                    each_buffer.lba += 1
+                    each_buffer.range -= 1
+            elif (each_buffer.lba + each_buffer.range - 1) == lba:
+                each_buffer.range -= 1
+            if is_need_to_append:
+                new_buffers.append(each_buffer)
+            return is_need_to_append, new_buffers
+
+        new_buffers = []
+        is_need_to_append = True
+        for i, each_buffer in enumerate(buffers):
+            if each_buffer.command == "W":
+                is_need_to_append, new_buffers = _handle_write(
+                    buffers,
+                    each_buffer,
+                    i,
+                    is_need_to_append,
+                    lba,
+                    new_buffer,
+                    new_buffers,
+                )
+            elif each_buffer.command == "E":
+                is_need_to_append, new_buffers = _handle_erase(
+                    buffers,
+                    each_buffer,
+                    i,
+                    is_need_to_append,
+                    lba,
+                    new_buffer,
+                    new_buffers,
+                )
+            if is_need_to_append == False:
+                break
+
+        if is_need_to_append:
+            new_buffers.append(new_buffer)
+
+        return new_buffers
+
+    def _process_erase(self, buffers, erase_size, lba, new_buffer):
         def _is_erase_range_same(each_buffer, erase_size, lba):
             return each_buffer.lba == lba and each_buffer.lba + each_buffer.range == lba + erase_size
 
@@ -276,66 +332,6 @@ class SSD:
         if is_need_to_append:
             new_buffers.append(new_buffer)
         return new_buffers
-
-    def _process_write_mode(self, buffers, lba, new_buffer):
-        def _handle_write(buffers, each_buffer, i, is_need_to_append, lba, new_buffer, new_buffers):
-            if each_buffer.lba != lba:
-                new_buffers.append(each_buffer)
-            else:
-                is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, new_buffer, new_buffers)
-            return is_need_to_append, new_buffers
-
-        def _handle_erase(buffers, each_buffer, i, is_need_to_append, lba, new_buffer, new_buffers):
-            if each_buffer.lba == lba:
-                if each_buffer.range == 1:
-                    is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, new_buffer, new_buffers)
-                if is_need_to_append:
-                    each_buffer.lba += 1
-                    each_buffer.range -= 1
-            elif (each_buffer.lba + each_buffer.range - 1) == lba:
-                each_buffer.range -= 1
-            if is_need_to_append:
-                new_buffers.append(each_buffer)
-            return is_need_to_append, new_buffers
-
-        new_buffers = []
-        is_need_to_append = True
-        for i, each_buffer in enumerate(buffers):
-            if each_buffer.command == "W":
-                is_need_to_append, new_buffers = _handle_write(
-                    buffers,
-                    each_buffer,
-                    i,
-                    is_need_to_append,
-                    lba,
-                    new_buffer,
-                    new_buffers,
-                )
-            elif each_buffer.command == "E":
-                is_need_to_append, new_buffers = _handle_erase(
-                    buffers,
-                    each_buffer,
-                    i,
-                    is_need_to_append,
-                    lba,
-                    new_buffer,
-                    new_buffers,
-                )
-            if is_need_to_append == False:
-                break
-
-        if is_need_to_append:
-            new_buffers.append(new_buffer)
-
-        return new_buffers
-
-
-    def _flush_when_buffer_are_full_or_flush_mode(self, buffers, mode):
-        # flush 조건 체크
-        if len(buffers) == 5 or mode == "F":
-            self.flush(buffers)
-            buffers = self.buffer_manager.get_buffer()
-        return buffers
 
 
 if __name__ == "__main__":
