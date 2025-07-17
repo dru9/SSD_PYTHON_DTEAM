@@ -100,9 +100,14 @@ def test_script_4_mock(file_mock, shell_mock):
     assert ret == MESSAGE_PASS
 
 
-def test_read(ssd_py_path):
-    ret = Shell.execute_command(cmd=ShellCommandEnum.READ, args=[0])
-    assert ret == "[Read] LBA 00 : 0x00000000"
+def test_write_and_read(ssd_py_path):
+    lba = 3
+    val = "0x30003000"
+    ret = Shell.execute_command(cmd=ShellCommandEnum.WRITE, args=[lba, val])
+    assert ret == "[Write] Done"
+
+    ret = Shell.execute_command(cmd=ShellCommandEnum.READ, args=[lba])
+    assert ret == f"[Read] LBA {lba:02d} : {val}"
 
 
 def test_write(ssd_py_path):
@@ -110,10 +115,14 @@ def test_write(ssd_py_path):
     assert ret == "[Write] Done"
 
 
-def test_full_read(ssd_py_path):
+def test_full_write_and_read(ssd_py_path):
+    val = "0x40004000"
+    ret = Shell.execute_command(cmd=ShellCommandEnum.FULLWRITE, args=[val])
+    assert ret == "[Full Write] Done"
+
     expected = "[Full Read]"
     for lba in range(SIZE_LBA):
-        expected += f"\nLBA {lba:0>2} : 0x00000000"
+        expected += f"\nLBA {lba:0>2} : {val}"
     ret = Shell.execute_command(cmd=ShellCommandEnum.FULLREAD, args=[])
     assert ret == expected
 
