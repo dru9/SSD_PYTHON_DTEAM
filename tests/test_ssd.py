@@ -9,8 +9,10 @@ from ssd import SSD, FileManager
 
 @pytest.fixture
 def ssd(mocker):
-    file_manager = mocker.Mock()
-    ssd = SSD(file_manager)
+    # file_manager = mocker.Mock()
+    # ssd = SSD(file_manager)
+    ssd = SSD()
+    ssd.file_manager = mocker.Mock()
     return ssd
 
 
@@ -20,17 +22,17 @@ def test_write_and_read(ssd):
     ssd.write(lba, expected)
     ssd.read(lba)
 
-    ssd.file_manager.read_nand_txt.assert_called_once()
-    ssd.file_manager.write_nand_txt.assert_called_once()
-    ssd.file_manager.write_output_txt.assert_called()
+    ssd.file_manager.read_nand.assert_called_once()
+    ssd.file_manager.write_nand.assert_called_once()
+    ssd.file_manager.write_output.assert_called()
 
 
 def test_read_ssd_nand_txt_file_called_by_read(ssd):
     lba = 0
     ssd.read(lba)
 
-    ssd.file_manager.read_nand_txt.assert_called_once()
-    ssd.file_manager.write_output_txt.assert_called_once()
+    ssd.file_manager.read_nand.assert_called_once()
+    ssd.file_manager.write_output.assert_called_once()
 
 
 def test_read_ssd_nand_txt_file_called_by_write(ssd):
@@ -38,29 +40,29 @@ def test_read_ssd_nand_txt_file_called_by_write(ssd):
     write_contents = "0x00001111"
     ssd.write(lba, write_contents)
 
-    ssd.file_manager.write_nand_txt.assert_called()
+    ssd.file_manager.write_nand.assert_called()
 
 
 def test_read_method_record_ssd_output_txt(ssd):
     lba = 0
     ssd.read(lba)
 
-    ssd.file_manager.read_nand_txt.assert_called()
-    ssd.file_manager.write_output_txt.assert_called()
+    ssd.file_manager.read_nand.assert_called()
+    ssd.file_manager.write_output.assert_called()
 
 
 def test_write_ssd(ssd):
     lba = 3
     ssd.write(lba, "0xFFFFFFFF")
 
-    ssd.file_manager.write_nand_txt.assert_called()
+    ssd.file_manager.write_nand.assert_called()
 
 
 def test_write_check_file(ssd):
     lba = 11
     ssd.write(lba, "0x1298CDEF")
 
-    ssd.file_manager.write_nand_txt.assert_called()
+    ssd.file_manager.write_nand.assert_called()
 
 
 @pytest.mark.skip
@@ -102,7 +104,7 @@ def test_execute_command_when_command_invalid_should_write_error():
 
 
 def run_execute_command_and_assert(args, expected_call, expected_write):
-    ssd = SSD(FileManager())
+    ssd = SSD()
     with patch('builtins.open', mock_open()) as mocked_open:
         ssd.execute_command(args)
         mocked_open.assert_called_once_with(FILENAME_OUT, expected_call)
@@ -113,10 +115,10 @@ def run_execute_command_and_assert(args, expected_call, expected_write):
 def test_filemanager_nand_write(mock_file):
     lba = 11
     return_value = {lba: "0x00000000"}
-    with patch.object(FileManager, '_read_whole_contents_nand_txt', return_value=return_value):
+    with patch.object(FileManager, '_read_whole_lines', return_value=return_value):
         file_manager = FileManager()
         contents = "0x12341234"
-        file_manager.write_nand_txt(lba, contents)
+        file_manager.write_nand(lba, contents)
         mock_file.assert_called_with('ssd_nand.txt', 'w')
 
 
@@ -124,10 +126,10 @@ def test_filemanager_nand_write(mock_file):
 def test_filemanager_nand_write_fail(mock_file):
     lba = 11
     return_value = {lba: ""}
-    with patch.object(FileManager, '_read_whole_contents_nand_txt', return_value=return_value):
+    with patch.object(FileManager, '_read_whole_lines', return_value=return_value):
         file_manager = FileManager()
         contents = "0x12341234"
-        result = file_manager.write_nand_txt(lba, contents)
+        result = file_manager.write_nand(lba, contents)
         assert result == False
 
 
@@ -135,7 +137,7 @@ def test_filemanager_nand_write_fail(mock_file):
 def test_filemanager_write_file(mock_file):
     lba = 11
     file_manager = FileManager()
-    result = file_manager.write_output_txt("ERROR")
+    result = file_manager.write_output("ERROR")
     mock_file.assert_called_with('ssd_output.txt', 'w')
 
 
@@ -188,7 +190,7 @@ def test_buffer_overwrites_earlier_instructions_with_last_for_same_lba():
 
 
 def test_buffer_overwrites_earlier_instructions_with_last_for_same_lba():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "W", "20", "0xABCDABCD"],
         [None, "W", "20", "0x12341234"],
@@ -221,7 +223,7 @@ def test_buffer_overwrites_earlier_instructions_with_last_for_same_lba():
 
 
 def test_read_from_buffer_when_lba_is_cached():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "R", "50"]
     ]
@@ -240,7 +242,7 @@ def test_read_from_buffer_when_lba_is_cached():
 
 
 def test_merge_buffer_commands_when_possible():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "E", "12", "3"]
     ]
@@ -267,7 +269,7 @@ def test_merge_buffer_commands_when_possible():
 
 
 def test_buffer_commands_write_when_possible():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "W", "12", "0x0000AAAA"]
     ]
@@ -288,7 +290,7 @@ def test_buffer_commands_write_when_possible():
 
 
 def test_read_buffer_commands_when_not_exists():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "R", "12"]
     ]
@@ -306,7 +308,7 @@ def test_read_buffer_commands_when_not_exists():
 
 
 def test_merge_buffer_commands_when_not_same_index():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "W", "12", "0xAAAABBBB"]
     ]
@@ -332,7 +334,7 @@ def test_merge_buffer_commands_when_not_same_index():
 
 
 def test_merge_buffer_commands_when_same_index():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "W", "12", "0xAAAABBBB"]
     ]
@@ -359,7 +361,7 @@ def test_merge_buffer_commands_when_same_index():
 
 
 def test_merge_buffer_commands_when_same_index_with_erase_range_1():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "W", "12", "0xAAAABBBB"]
     ]
@@ -419,7 +421,7 @@ def test_merge_buffer_commands_when_erase_range_2():
 
 
 def test_merge_buffer_commands_when_erase_range_2():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "W", "12", "0xAAAABBBB"]
     ]
@@ -452,7 +454,7 @@ def test_merge_buffer_commands_when_erase_range_2():
 
 
 def test_flush_buffer_when_mode_is_flush_should_execute_instruction():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "F"]
     ]
@@ -464,7 +466,7 @@ def test_flush_buffer_when_mode_is_flush_should_execute_instruction():
     with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers) as mock_get_buffer, \
           patch('builtins.open', mock_open(read_data=initial_file_data)) as mock_file, \
           patch.object(BufferManager, 'set_buffer') as mock_set_buffer, \
-          patch.object(FileManager, 'write_output_txt') as mock_write_output):
+          patch.object(FileManager, 'write_output') as mock_write_output):
         ssd.execute_command(commands[0])
 
         args, kwargs = mock_set_buffer.call_args
@@ -476,7 +478,7 @@ def test_flush_buffer_when_mode_is_flush_should_execute_instruction():
 
 
 def test_flush_buffer_when_buffers_are_full_should_execute_instruction():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "W", "2", "0x12345678"]
     ]
@@ -496,7 +498,7 @@ def test_flush_buffer_when_buffers_are_full_should_execute_instruction():
     with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers) as mock_get_buffer, \
           patch('builtins.open', mock_open(read_data=initial_file_data)) as mock_file, \
           patch.object(BufferManager, 'set_buffer') as mock_set_buffer, \
-          patch.object(FileManager, 'write_output_txt')):
+          patch.object(FileManager, 'write_output')):
         ssd.execute_command(commands[0])
 
         write_calls = mock_file().write.call_args_list
@@ -505,7 +507,7 @@ def test_flush_buffer_when_buffers_are_full_should_execute_instruction():
 
 
 def test_flush_buffer_should_write_empty_string_when_normal():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "F"]
     ]
@@ -516,13 +518,13 @@ def test_flush_buffer_should_write_empty_string_when_normal():
     with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers) as mock_get_buffer, \
           patch('builtins.open', mock_open(read_data=initial_file_data)) as mock_file, \
           patch.object(BufferManager, 'set_buffer') as mock_set_buffer, \
-          patch.object(FileManager, 'write_output_txt') as mock_write_buffer):
+          patch.object(FileManager, 'write_output') as mock_write_buffer):
         ssd.execute_command(commands[0])
         mock_write_buffer.assert_called_once_with("")
 
 
 def test_command_buffer_test_erase_keep_buffer():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "E", "88", 6]
     ]
@@ -548,7 +550,7 @@ def test_command_buffer_test_erase_keep_buffer():
 
 
 def test_command_buffer_test_erase_overlap_range():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "E", "10", 3]
     ]
@@ -572,7 +574,7 @@ def test_command_buffer_test_erase_overlap_range():
 
 
 def test_command_buffer_test_erase_same_range():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "E", "15", 5]
     ]
@@ -596,7 +598,7 @@ def test_command_buffer_test_erase_same_range():
 
 
 def test_command_buffer_test_erase_over10():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "E", "22", 4]
     ]
@@ -618,7 +620,7 @@ def test_command_buffer_test_erase_over10():
 
 
 def test_erase_command_expands_buffer_range_by_merging():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "E", "95", 5]
     ]
@@ -639,7 +641,7 @@ def test_erase_command_expands_buffer_range_by_merging():
 
 
 def test_command_buffer_test_erase_same_range():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "E", "50", 6]
     ]
@@ -661,7 +663,7 @@ def test_command_buffer_test_erase_same_range():
 
 
 def test_command_buffer_erase_larger_new_range():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "E", "50", 7]
     ]
@@ -687,7 +689,7 @@ def test_execute_command_when_flush_command_invalid_should_write_error():
 
     
 def test_merge_erase_buffer():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "E", "20", "2"],
         [None, "E", "21", "2"],
@@ -729,7 +731,7 @@ def test_merge_erase_buffer_hard():
 
 
 def test_remove_erase_buffer():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "E", "20", "3"],
         [None, "W", "20", "0xABCDABC0"],

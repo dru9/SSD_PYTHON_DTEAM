@@ -7,79 +7,90 @@ from constant import FILENAME, FILENAME_OUT, SIZE_LBA
 
 
 class FileManager:
-    def __init__(self):
-        self.init_nand_txt()
 
-    def init_nand_txt(self):
-        if not os.path.exists(FILENAME):
-            with open(FILENAME, "w") as f:
-                for i in range(SIZE_LBA):
-                    f.write(f"{i}\t0x00000000\n")
+    def __init__(self) -> None:
+        self.init_nand()
 
-    def _read_whole_contents_nand_txt(self) -> dict[int, str]:
+    @classmethod
+    def init_nand(cls) -> None:
+        if os.path.exists(FILENAME):
+            return
+
+        with open(FILENAME, "w") as f:
+            for i in range(SIZE_LBA):
+                f.write(f"{i}\t0x00000000\n")
+
+    @classmethod
+    def _read_whole_lines(cls) -> dict[int, str]:
         result = {}
         with open(FILENAME, "r") as f:
             for line in f:
                 line = line.strip()
                 if not line:
-                    continue  # 빈 줄 무시
+                    continue
                 parts = line.split("\t")
                 if len(parts) != 2:
                     continue
                 result[int(parts[0])] = parts[1]
         return result
 
-    def _save_to_nand_file(self, data) -> None:
+    @classmethod
+    def _save_to_nand(cls, data) -> None:
         with open(FILENAME, "w") as f:
             for key, value in data.items():
                 f.write(f"{key}\t{value}\n")
 
-    def read_nand_txt(self, lba):
-        data_list = self._read_whole_contents_nand_txt()
+    @classmethod
+    def read_nand(cls, lba):
+        data_list = cls._read_whole_lines()
         return data_list.get(lba, "")
 
-    def write_nand_txt(self, lba, change_data) -> bool:
-        nand_datas = self._read_whole_contents_nand_txt()
+    @classmethod
+    def write_nand(cls, lba, change_data) -> bool:
+        nand_datas = cls._read_whole_lines()
         current_data = nand_datas.get(lba, "")
         if current_data == "":
             return False
         nand_datas[lba] = change_data
-        self._save_to_nand_file(nand_datas)
+        cls._save_to_nand(nand_datas)
         return True
 
-    def erase_nand_txt(self, lba, size) -> bool:
-        nand_datas = self._read_whole_contents_nand_txt()
-        current_data = nand_datas.get(lba, "")
+    @classmethod
+    def erase_nand(cls, lba, size) -> bool:
+        lines = cls._read_whole_lines()
+        current_data = lines.get(lba, "")
         if current_data == "":
             return False
         for each_lba in range(lba, lba + size):
-            nand_datas[each_lba] = "0x00000000"
-        self._save_to_nand_file(nand_datas)
+            lines[each_lba] = "0x00000000"
+        cls._save_to_nand(lines)
         return True
 
-    def write_output_txt(self, contents: str):
+    @classmethod
+    def write_output(cls, contents: str):
         with open(FILENAME_OUT, "w") as f:
             f.write(contents)
 
 
 class SSD:
-    def __init__(self, file_manager):
-        self.file_manager = file_manager
+
+    def __init__(self) -> None:
+        self.file_manager = FileManager()
         self.buffer_manager = BufferManager()
 
-    def read(self, lba):
-        read_value = self.file_manager.read_nand_txt(lba)
+    def read(self, lba) -> None:
+        read_value = self.file_manager.read_nand(lba)
         if read_value == "":
-            self.file_manager.write_output_txt("ERROR")
+            self.file_manager.write_output("ERROR")
         else:
-            self.file_manager.write_output_txt(read_value)
+            self.file_manager.write_output(read_value)
 
-    def write(self, lba, data):
-        if not self.file_manager.write_nand_txt(lba, data):
-            self.file_manager.write_output_txt("ERROR")
-        self.file_manager.write_output_txt("")
+    def write(self, lba, data) -> None:
+        if not self.file_manager.write_nand(lba, data):
+            self.file_manager.write_output("ERROR")
+        self.file_manager.write_output("")
 
-    def execute_command(self, args):
+    def execute_command(self, args) -> None:
         if not self._args_valid_guard_clauses(args):
             return
 
@@ -98,15 +109,15 @@ class SSD:
                 size = utils.parse_integer(args[3])
                 self._execute_command_with_buffers(mode=mode, lba=lba, erase_size=size)
 
-    def erase(self, lba, size):
-        if not self.file_manager.erase_nand_txt(lba, size):
-            self.file_manager.write_output_txt("ERROR")
-        self.file_manager.write_output_txt("")
+    def erase(self, lba, size) -> None:
+        if not self.file_manager.erase_nand(lba, size):
+            self.file_manager.write_output("ERROR")
+        self.file_manager.write_output("")
 
     def _args_valid_guard_clauses(self, args):
         def _error(message):
             print(message)
-            self.file_manager.write_output_txt("ERROR")
+            self.file_manager.write_output("ERROR")
             return False
 
         argument_len = len(args)
@@ -147,14 +158,14 @@ class SSD:
 
         return True
 
-    def flush(self, buffers):
+    def flush(self, buffers) -> None:
         for buffer in buffers:
             if buffer.command == "W":
                 self.write(buffer.lba, buffer.data)
             elif buffer.command == "E":
                 self.erase(buffer.lba, buffer.range)
             else:
-                self.file_manager.write_output_txt("ERROR")
+                self.file_manager.write_output("ERROR")
                 print("Invalid command")
                 break
         self.buffer_manager.set_buffer([])
@@ -167,7 +178,7 @@ class SSD:
         buffers = self.buffer_manager.get_buffer()
         buffers = self._flush_when_buffer_are_full_or_flush_mode(buffers, mode)
         if mode == "F":
-            self.file_manager.write_output_txt("")
+            self.file_manager.write_output("")
             return
 
         if mode == "R":
@@ -183,7 +194,7 @@ class SSD:
             return
 
         self.buffer_manager.set_buffer(new_buffers)
-        self.file_manager.write_output_txt("")
+        self.file_manager.write_output("")
 
     def _process_erase_mode(self, buffers, erase_size, lba, new_buffer):
         def _is_erase_range_same(each_buffer, erase_size, lba):
@@ -297,11 +308,11 @@ class SSD:
     def read_first_buffer(self, buffers, lba):
         for _, buffer in reversed(list(enumerate(buffers))):
             if buffer.command == "W" and buffer.lba == lba:
-                self.file_manager.write_output_txt(buffer.data)
+                self.file_manager.write_output(buffer.data)
                 return True
 
             if buffer.command == "E" and buffer.lba <= lba < buffer.lba + buffer.range:
-                self.file_manager.write_output_txt("0x00000000")
+                self.file_manager.write_output("0x00000000")
                 return True
 
         return False
@@ -315,5 +326,5 @@ class SSD:
 
 
 if __name__ == "__main__":
-    ssd = SSD(FileManager())
+    ssd = SSD()
     ssd.execute_command(sys.argv)
