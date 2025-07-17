@@ -308,6 +308,7 @@ class Shell:
                 ShellCommandEnum.FULLWRITE: cls.command_executor.full_write,
                 ShellCommandEnum.ERASE: cls.command_executor.erase,
                 ShellCommandEnum.ERASE_RANGE: cls.command_executor.erase_range,
+                ShellCommandEnum.FLUSH: cls.command_executor.flush,
                 ShellCommandEnum.SCRIPT_1: cls.script_executor.script_1,
                 ShellCommandEnum.SCRIPT_2: cls.script_executor.script_2,
                 ShellCommandEnum.SCRIPT_3: cls.script_executor.script_3,
