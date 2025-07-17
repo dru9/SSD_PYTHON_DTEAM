@@ -3,7 +3,7 @@ import sys
 from typing import Any, Mapping
 
 import utils
-from buffer import Buffer, BufferManager
+from buffer_manager import Buffer, BufferManager
 from constant import FILENAME, FILENAME_OUT, SIZE_LBA
 
 

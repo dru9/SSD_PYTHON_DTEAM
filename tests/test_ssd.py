@@ -2,15 +2,13 @@ from unittest.mock import mock_open, patch, call
 
 import pytest
 
-from buffer import BufferManager, Buffer
+from buffer_manager import Buffer, BufferManager
 from constant import FILENAME, FILENAME_OUT
 from ssd import SSD, FileManager
 
 
 @pytest.fixture
 def ssd(mocker):
-    # file_manager = mocker.Mock()
-    # ssd = SSD(file_manager)
     ssd = SSD()
     ssd.file_manager = mocker.Mock()
     return ssd
@@ -54,31 +52,27 @@ def test_read_method_record_ssd_output_txt(ssd):
 def test_write_ssd(ssd):
     lba = 3
     ssd.write(lba, "0xFFFFFFFF")
-
     ssd.file_manager.write_nand.assert_called()
 
 
 def test_write_check_file(ssd):
     lba = 11
     ssd.write(lba, "0x1298CDEF")
-
     ssd.file_manager.write_nand.assert_called()
 
 
 @pytest.mark.skip
 def test_execute_command_when_write_normal_should_write_value():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     initial_file_data = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n'
     mocked_open = mock_open(read_data=initial_file_data)
 
     with patch('builtins.open', mocked_open):
         args = [None, "W", "1", "0xAAAAAAAA"]
         ssd.run(args)
-
         mocked_open.assert_has_calls([call(FILENAME, 'r')], any_order=False)
         mocked_open.assert_has_calls([call(FILENAME, 'w')], any_order=False)
         mocked_open.assert_has_calls([call(FILENAME_OUT, 'w')], any_order=False)
-
         mocked_open().write.assert_any_call("")
 
 
@@ -143,7 +137,7 @@ def test_filemanager_write_file(mock_file):
 
 @pytest.mark.skip
 def test_erase_replace_value_as_zero():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     initial_file_data = '0\t0x11111111\n1\t0x22222222\n2\t0x33333333\n'
     expected = '0\t0x11111111\n1\t0x00000000\n2\t0x00000000\n'
     expected_lines = expected.splitlines(keepends=True)
@@ -170,7 +164,7 @@ def test_execute_command_when_erase_size_is_out_of_range_should_write_error():
 
 
 def test_buffer_overwrites_earlier_instructions_with_last_for_same_lba():
-    ssd = SSD(FileManager())
+    ssd = SSD()
     commands = [
         [None, "W", "20", "0xABCDABCD"],
         [None, "W", "20", "0x12341234"],
@@ -388,39 +382,6 @@ def test_merge_buffer_commands_when_same_index_with_erase_range_1():
 
 
 def test_merge_buffer_commands_when_erase_range_2():
-    ssd = SSD(FileManager())
-    commands = [
-        [None, "W", "12", "0xAAAABBBB"]
-    ]
-    initial_buffers = [Buffer(command="E", lba=12, data="", range=2),
-                       Buffer(command="W", lba=22, data="0xABCDABCD", range="")]
-
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
-        ssd.run(commands[0])
-
-        args, kwargs = mock_set_buffer.call_args
-        buffer_written = args[0][0]
-        assert buffer_written.command == "E"
-        assert buffer_written.lba == 13
-        assert buffer_written.data == ""
-        assert buffer_written.range == 1
-
-        buffer_written = args[0][1]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 22
-        assert buffer_written.data == "0xABCDABCD"
-
-        buffer_written = args[0][2]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 12
-        assert buffer_written.data == "0xAAAABBBB"
-
-        assert len(args[0]) == 3
-
-
-def test_merge_buffer_commands_when_erase_range_2():
     ssd = SSD()
     commands = [
         [None, "W", "12", "0xAAAABBBB"]
@@ -531,7 +492,6 @@ def test_command_buffer_test_erase_keep_buffer():
     initial_buffers = [
         Buffer(command="E", lba=93, data="", range=7),
     ]
-
     with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
                                                                                         mock_open()) as mocked_open, \
             patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
