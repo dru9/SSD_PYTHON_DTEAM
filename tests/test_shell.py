@@ -181,6 +181,14 @@ def test_script_4(ssd_py_path):
     assert ret == MESSAGE_PASS
 
 
+def test_run_function(monkeypatch, capsys):
+    inputs = iter(["read 100", "", "exit"])
+    monkeypatch.setattr("builtins.input", lambda _: next(inputs))
+    ret = Shell.run()
+    captured = capsys.readouterr()
+    assert captured.out == "[Read] ERROR\n"
+    
+    
 def test_run_script(ssd_py_path, capsys):
     test_script = "test_shell_script.txt"
     expected = ('1_FullWriteAndReadCompare   ___   Run...Pass\n'
