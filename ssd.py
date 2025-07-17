@@ -201,104 +201,89 @@ class SSD:
         # Buffer에 접근 먼저 해서 알고리즘 동작하게 하기.
         # R
         if mode == "R":
-            for i, b in enumerate(buffers):
-                if b.command == "W":
-                    if b.lba == lba:
-                        self.file_manager.write_output_txt(b.data)
-                        return
-                if b.command == "E":
-                    if lba >= b.lba and lba < b.lba + b.range:
-                        self.file_manager.write_output_txt("0x00000000")
-                        return
-            self.read(lba)
+            read_buffer_success = self.read_buffer_first(buffers, lba)
+            if not read_buffer_success:
+                self.read(lba)
             return
         # W
         new_buffers = []
         new_buffer = Buffer(mode, lba, data, erase_size)
         is_need_append_new_buffer = True
         if mode == "W":
-            for i, b in enumerate(buffers):
+            for i, each_buffer in enumerate(buffers):
                 # 1. W인 경우
-                if b.command == "W":
-                    if b.lba != lba:
-                        new_buffers.append(b)
+                if each_buffer.command == "W":
+                    if each_buffer.lba != lba:
+                        new_buffers.append(each_buffer)
                         continue
                     new_buffers += buffers[i + 1:]
                     new_buffers.append(new_buffer)
                     is_need_append_new_buffer = False
                     break
                 # 2. E인 경우
-                if b.command == "E":
-                    if b.lba == lba:
-                        if b.range == 1:
+                if each_buffer.command == "E":
+                    if each_buffer.lba == lba:
+                        if each_buffer.range == 1:
                             new_buffers += buffers[i + 1:]
                             new_buffers.append(new_buffer)
                             is_need_append_new_buffer = False
                             break
-                        b.lba += 1
-                        b.range -= 1
-                    elif (b.lba + b.range - 1) == lba:
-                        b.range -= 1
-                    new_buffers.append(b)
+                        each_buffer.lba += 1
+                        each_buffer.range -= 1
+                    elif (each_buffer.lba + each_buffer.range - 1) == lba:
+                        each_buffer.range -= 1
+                    new_buffers.append(each_buffer)
                     continue
         # E
         if mode == "E":
-            for i, b in enumerate(buffers):
+            for i, each_buffer in enumerate(buffers):
                 # 1. W인 경우
-                if b.command == "W":
-                    if b.lba >= lba and b.lba < lba + erase_size:
+                if each_buffer.command == "W":
+                    if each_buffer.lba >= lba and each_buffer.lba < lba + erase_size:
                         continue
                     new_buffers.append(b)
                     continue
                 # 2. E인 경우
-                if b.command == "E":
+                if each_buffer.command == "E":
                     # erase 범위가 완전 동일한 경우
-                    if b.lba == lba and b.lba + b.range == lba + erase_size:
+                    if each_buffer.lba == lba and each_buffer.lba + each_buffer.range == lba + erase_size:
                         new_buffers += buffers[i + 1:]
                         new_buffers.append(new_buffer)
                         is_need_append_new_buffer = False
                         break
                     # erase 범위가 겹치는 경우
-                    elif ((b.lba <= lba < b.lba + b.range) or
-                          (lba <= b.lba < lba + erase_size)):
+                    elif ((each_buffer.lba <= lba and each_buffer.lba + each_buffer.range > lba) or
+                          (each_buffer.lba >= lba and each_buffer.lba < lba + erase_size)):
                         # range 합쳤을 때, 10 넘는 경우에는 합치지 않기
-                        min_lba = b.lba
-                        if b.lba > lba:
-                            min_lba = lba
-                        max_range = lba + erase_size -1
-                        if max_range < b.lba + b.range -1:
-                            max_range = b.lba + b.range -1
-
-                        if max_range - min_lba > 10:
-                            new_buffers.append(b)
+                        if each_buffer.range + erase_size > 10:
+                            new_buffers.append(each_buffer)
                             continue
-
-                        if b.lba <= lba:
+                        if each_buffer.lba <= lba:
                             # b.lba + b.range > 100 또는 lba + erase_size > 100  넘는 경우에도 추가하면 안돼!
-                            if lba + erase_size > SIZE_LBA or b.lba + b.range > SIZE_LBA:
-                                new_buffers.append(b)
+                            if lba + erase_size > SIZE_LBA or each_buffer.lba + each_buffer.range > SIZE_LBA:
+                                new_buffers.append(each_buffer)
                                 continue
 
-                            if b.lba + b.range > lba + erase_size:
+                            if each_buffer.lba + each_buffer.range > lba + erase_size:
                                 new_buffers += buffers[i:]
                                 is_need_append_new_buffer = False
                                 break
 
-                            b.range = lba + erase_size - b.lba
+                            each_buffer.range = lba + erase_size - each_buffer.lba
                             new_buffers += buffers[i + 1:]
-                            new_buffers.append(b)
+                            new_buffers.append(each_buffer)
                             is_need_append_new_buffer = False
                             break
 
-                        if lba < b.lba:
+                        if lba < each_buffer.lba:
                             # lba + range  > 100 or b.lba + b.range > 100 넘는 경우에도 추가하면 안돼
-                            if lba + erase_size > SIZE_LBA or b.lba + b.range > SIZE_LBA:
-                                new_buffers.append(b)
+                            if lba + erase_size > SIZE_LBA or each_buffer.lba + each_buffer.range > SIZE_LBA:
+                                new_buffers.append(each_buffer)
                                 continue
 
-                            new_buffer.range = b.lba + b.range - lba
+                            new_buffer.range = each_buffer.lba + each_buffer.range - lba
                             continue
-                    new_buffers.append(b)
+                    new_buffers.append(each_buffer)
                     continue
 
         if is_need_append_new_buffer:
@@ -306,6 +291,21 @@ class SSD:
         # 마지막에 rename
         self.buffer_manager.set_buffer(new_buffers)
         self.file_manager.write_output_txt("")
+
+    def read_buffer_first(self, buffers, lba):
+        for _, each_buffer in reversed(list(enumerate(buffers))):
+            if each_buffer.command == "W":
+                if each_buffer.lba == lba:
+                    self.file_manager.write_output_txt(each_buffer.data)
+                    return True
+            if each_buffer.command == "E":
+                if self.check_read_lba_is_in_erase_range(each_buffer, lba):
+                    self.file_manager.write_output_txt("0x00000000")
+                    return True
+        return False
+
+    def check_read_lba_is_in_erase_range(self, buffer, lba):
+        return lba >= buffer.lba and lba < buffer.lba + buffer.range
 
     def _flush_when_buffer_are_full_or_flush_mode(self, buffers, mode):
         # flush 조건 체크

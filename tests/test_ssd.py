@@ -226,8 +226,9 @@ def test_read_from_buffer_when_lba_is_cached():
         [None, "R", "50"]
     ]
     initial_buffers = [Buffer(command="W", lba=50, data="0xAAAABBBB", range=""),
+                       Buffer(command="W", lba=50, data="0x12345678", range=""),
                        Buffer(command="W", lba=20, data="0xABABCCCC", range="")]
-    expected_write = "0xAAAABBBB"
+    expected_write = "0x12345678"
     with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
                                                                                         mock_open()) as mocked_open, \
             patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
@@ -235,6 +236,7 @@ def test_read_from_buffer_when_lba_is_cached():
 
         mock_set_buffer.assert_not_called()
         mocked_open().write.assert_called_once_with(expected_write)
+
 
 
 def test_merge_buffer_commands_when_possible():
