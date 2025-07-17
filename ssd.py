@@ -192,26 +192,21 @@ class SSD:
         if mode == "R":
             self._process_read_mode(buffers, lba)
             return
-        # W
-        new_buffers = []
-        new_buffer = Buffer(mode, lba, data, erase_size)
-        is_need_append_new_buffer = True
-        if mode == "W":
-            is_need_append_new_buffer, new_buffers = self._process_write_mode(buffers, is_need_append_new_buffer, lba,
-                                                                              new_buffer, new_buffers)
-        # E
-        if mode == "E":
-            is_need_append_new_buffer, new_buffers = self._process_erase_mode(buffers, erase_size,
-                                                                              is_need_append_new_buffer, lba,
-                                                                              new_buffer, new_buffers)
 
-        if is_need_append_new_buffer:
-            new_buffers.append(new_buffer)
-        # 마지막에 rename
+        new_buffer = Buffer(mode, lba, data, erase_size)
+        if mode == "W":
+            new_buffers = self._process_write_mode(buffers, lba, new_buffer)
+        elif mode == "E":
+            new_buffers = self._process_erase_mode(buffers, erase_size, lba, new_buffer)
+        else:
+            return
+
         self.buffer_manager.set_buffer(new_buffers)
         self.file_manager.write_output_txt("")
 
-    def _process_erase_mode(self, buffers, erase_size, is_need_append_new_buffer, lba, new_buffer, new_buffers):
+    def _process_erase_mode(self, buffers, erase_size, lba, new_buffer):
+        new_buffers = []
+        is_need_append_new_buffer = True
         for i, each_buffer in enumerate(buffers):
             # 1. W인 경우
             if each_buffer.command == "W":
@@ -234,12 +229,12 @@ class SSD:
 
                     # range 합쳤을 때, 10 넘는 경우에는 합치지 않기
                     min_lba = lba
-                    if lba > each_buffer.lba :
+                    if lba > each_buffer.lba:
                         min_lba = each_buffer.lba
                     max_range = lba + erase_size
-                    if max_range < each_buffer.lba + each_buffer.range :
+                    if max_range < each_buffer.lba + each_buffer.range:
                         max_range = each_buffer.lba + each_buffer.range
-                    if max_range - min_lba > 10 :
+                    if max_range - min_lba > 10:
                         new_buffers.append(each_buffer)
                         continue
 
@@ -273,34 +268,52 @@ class SSD:
                         continue
                 new_buffers.append(each_buffer)
                 continue
-        return is_need_append_new_buffer, new_buffers
+        if is_need_append_new_buffer:
+            new_buffers.append(new_buffer)
+        return new_buffers
 
-    def _process_write_mode(self, buffers, is_need_append_new_buffer, lba, new_buffer, new_buffers):
-        for i, each_buffer in enumerate(buffers):
-            # 1. W인 경우
-            if each_buffer.command == "W":
-                if each_buffer.lba != lba:
-                    new_buffers.append(each_buffer)
-                    continue
+    def _process_write_mode(self, buffers, lba, new_buffer):
+        def _handle_write(buffers, each_buffer, i, is_need_append_new_buffer, lba, new_buffer, new_buffers):
+            if each_buffer.lba != lba:
+                new_buffers.append(each_buffer)
+            else:
                 new_buffers += buffers[i + 1:]
                 new_buffers.append(new_buffer)
                 is_need_append_new_buffer = False
-                break
-            # 2. E인 경우
-            if each_buffer.command == "E":
-                if each_buffer.lba == lba:
-                    if each_buffer.range == 1:
-                        new_buffers += buffers[i + 1:]
-                        new_buffers.append(new_buffer)
-                        is_need_append_new_buffer = False
-                        break
+            return is_need_append_new_buffer, new_buffers
+
+        def _handle_erase(buffers, each_buffer, i, is_need_append_new_buffer, lba, new_buffer, new_buffers):
+            if each_buffer.lba == lba:
+                if each_buffer.range == 1:
+                    new_buffers += buffers[i + 1:]
+                    new_buffers.append(new_buffer)
+                    is_need_append_new_buffer = False
+                if is_need_append_new_buffer:
                     each_buffer.lba += 1
                     each_buffer.range -= 1
-                elif (each_buffer.lba + each_buffer.range - 1) == lba:
-                    each_buffer.range -= 1
+            elif (each_buffer.lba + each_buffer.range - 1) == lba:
+                each_buffer.range -= 1
+            if is_need_append_new_buffer:
                 new_buffers.append(each_buffer)
-                continue
-        return is_need_append_new_buffer, new_buffers
+            return is_need_append_new_buffer, new_buffers
+
+        new_buffers = []
+        is_need_append_new_buffer = True
+        for i, each_buffer in enumerate(buffers):
+            if each_buffer.command == "W":
+                is_need_append_new_buffer, new_buffers = _handle_write(buffers, each_buffer, i,
+                                                                       is_need_append_new_buffer, lba, new_buffer,
+                                                                       new_buffers)
+            elif each_buffer.command == "E":
+                is_need_append_new_buffer, new_buffers = _handle_erase(buffers, each_buffer, i,
+                                                                       is_need_append_new_buffer, lba, new_buffer,
+                                                                       new_buffers)
+            if is_need_append_new_buffer == False:
+                break
+
+        if is_need_append_new_buffer:
+            new_buffers.append(new_buffer)
+        return new_buffers
 
     def read_buffer_first(self, buffers, lba):
         for _, each_buffer in reversed(list(enumerate(buffers))):

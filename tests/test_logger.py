@@ -46,7 +46,7 @@ def test_rollover_happens_when_log_exceeds_size(fixed_datetime, logger):
             patch("builtins.open", mock_open()):
         logger._rollover_if_needed()
 
-        expected_new_log = ".\\until_240716_12h_34m_56s.zip"
+        expected_new_log = ".\\until_240716_12h_34m_56s.log"
         mock_rename.assert_called_once_with(f".\\{LOG_FILE_NAME}", expected_new_log)
 
 
