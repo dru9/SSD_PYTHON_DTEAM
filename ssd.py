@@ -183,7 +183,7 @@ class SSD:
             if buffer.command == "W":
                 self.write(buffer.lba, buffer.data)
             elif buffer.command == "E":
-                self.read(buffer.lba)
+                self.erase(buffer.lba, buffer.range)
             else:
                 self.file_manager.write_output_txt("ERROR")
                 print("Invalid command")
