@@ -1,5 +1,6 @@
 import os
 import sys
+from typing import Any, Mapping
 
 import utils
 from command_buffer import BufferManager, Buffer
@@ -90,75 +91,12 @@ class SSD:
             self.file_manager.write_output("ERROR")
         self.file_manager.write_output("")
 
-    def execute_command(self, args) -> None:
-        if not self._args_valid_guard_clauses(args):
-            return
-
-        mode = args[1]
-
-        if mode == "F":
-            self._execute_command_with_buffers(mode=mode)
-        else:
-            lba = int(args[2])
-            if mode == "W":
-                hex_string = args[3]
-                self._execute_command_with_buffers(mode=mode, lba=lba, data=hex_string)
-            elif mode == "R":
-                self._execute_command_with_buffers(mode=mode, lba=lba)
-            elif mode == "E":
-                size = utils.parse_integer(args[3])
-                self._execute_command_with_buffers(mode=mode, lba=lba, erase_size=size)
-
     def erase(self, lba, size) -> None:
         if not self.file_manager.erase_nand(lba, size):
             self.file_manager.write_output("ERROR")
         self.file_manager.write_output("")
 
-    def _args_valid_guard_clauses(self, args):
-        def _error(message):
-            print(message)
-            self.file_manager.write_output("ERROR")
-            return False
-
-        argument_len = len(args)
-        if argument_len < 2:
-            return _error("At least one argument are required")
-
-        mode = args[1]
-        valid_modes = {"W", "R", "E", "F"}
-        if mode not in valid_modes:
-            return _error("Mode should be in ('W', 'R', 'E', 'F')")
-
-        # mode별 기대하는 argument 개수와 메시지
-        expected_args = {
-            "W": (4, "Mode W need lba and value"),
-            "R": (3, "Mode R need lba"),
-            "E": (4, "Mode E need lba and size"),
-            "F": (2, "Mode F need only command"),
-        }
-
-        expected_len, error_msg = expected_args[mode]
-        if argument_len != expected_len:
-            return _error(error_msg)
-
-        if mode == "F":
-            return True
-
-        lba = utils.parse_integer(args[2])
-        if lba == "" or not utils.validate_index(args[2], valid_size=SIZE_LBA):
-            return _error("The index should be an integer among 0 ~ 99")
-
-        if mode == "W" and not utils.validate_hexadecimal(args[3]):
-            return _error("Value should to be hex string")
-
-        if mode == "E":
-            size = utils.parse_integer(args[3])
-            if size == "" or size < 1 or size > 10 or lba + size > SIZE_LBA:
-                return _error("Size should be integer among 1 ~ 10 and lba + size must be smaller than 101")
-
-        return True
-
-    def flush(self, buffers) -> None:
+    def flush(self, buffers: list[Buffer]) -> None:
         for buffer in buffers:
             if buffer.command == "W":
                 self.write(buffer.lba, buffer.data)
@@ -170,11 +108,72 @@ class SSD:
                 break
         self.buffer_manager.set_buffer([])
 
-    def _process_read_mode(self, buffers, lba):
-        if not self.read_first_buffer(buffers, lba):
-            self.read(lba)
+    def execute(self, args) -> None:
+        if not self._validate_cmd_args(args):
+            return
 
-    def _execute_command_with_buffers(self, mode, lba=None, data='', erase_size=0):
+        mode = args[1]
+        kwargs: dict[str, Any] = {"mode": mode}
+        if mode == "R":
+            kwargs.update({"lba": int(args[2])})
+        elif mode == "W":
+            kwargs.update({"lba": int(args[2]), "data": args[3]})
+        elif mode == "E":
+            kwargs.update({"lba": int(args[2]), "erase_size": utils.parse_integer(args[3])})
+        else:
+            pass
+
+        self._execute_command(**kwargs)
+
+    def _validate_cmd_args(self, args):
+
+        def check_error(msg: str) -> None:
+            print(msg)
+            self.file_manager.write_output("ERROR")
+
+        length = len(args)
+        if length < 2:
+            check_error("At least one argument are required")
+            return False
+
+        mode = args[1]
+        valid_modes = {"W", "R", "E", "F"}
+        if mode not in valid_modes:
+            check_error(f"Invalid mode not in {valid_modes}")
+            return False
+
+        expected_args = {
+            "W": (4, "Mode W need lba and value"),
+            "R": (3, "Mode R need lba"),
+            "E": (4, "Mode E need lba and size"),
+            "F": (2, "Mode F need only command"),
+        }
+        expected_len, error_msg = expected_args[mode]
+        if length != expected_len:
+            check_error(error_msg)
+            return False
+
+        if mode == "F":
+            return True
+
+        lba = utils.parse_integer(args[2])
+        if lba == "" or not utils.validate_index(args[2], valid_size=SIZE_LBA):
+            check_error("The index should be an integer among 0 ~ 99")
+            return False
+
+        if mode == "W" and not utils.validate_hexadecimal(args[3]):
+            check_error("Value should to be hex string")
+            return False
+
+        if mode == "E":
+            size = utils.parse_integer(args[3])
+            if size == "" or size < 1 or size > 10 or lba + size > SIZE_LBA:
+                check_error("Size should be integer among 1 ~ 10 and lba + size must be smaller than 101")
+                return False
+
+        return True
+
+    def _execute_command(self, mode, lba=None, data='', erase_size=0):
         buffers = self.buffer_manager.get_buffer()
         buffers = self._flush_when_buffer_are_full_or_flush_mode(buffers, mode)
         if mode == "F":
@@ -195,6 +194,15 @@ class SSD:
 
         self.buffer_manager.set_buffer(new_buffers)
         self.file_manager.write_output("")
+
+    def update_buffer(self, buffers, i, new_buffer, new_buffers):
+        new_buffers += buffers[i + 1:]
+        new_buffers.append(new_buffer)
+        return False, new_buffers
+
+    def _process_read_mode(self, buffers, lba):
+        if not self.read_first_buffer(buffers, lba):
+            self.read(lba)
 
     def _process_erase_mode(self, buffers, erase_size, lba, new_buffer):
         def _is_erase_range_same(each_buffer, erase_size, lba):
@@ -261,11 +269,6 @@ class SSD:
             new_buffers.append(new_buffer)
         return new_buffers
 
-    def update_buffer(self, buffers, i, new_buffer, new_buffers):
-        new_buffers += buffers[i + 1:]
-        new_buffers.append(new_buffer)
-        return False, new_buffers
-
     def _process_write_mode(self, buffers, lba, new_buffer):
         def _handle_write(buffers, each_buffer, i, is_need_append_new_buffer, lba, new_buffer, new_buffers):
             if each_buffer.lba != lba:
@@ -327,4 +330,4 @@ class SSD:
 
 if __name__ == "__main__":
     ssd = SSD()
-    ssd.execute_command(sys.argv)
+    ssd.execute(sys.argv)
