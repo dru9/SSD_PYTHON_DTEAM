@@ -207,7 +207,7 @@ class SSD:
                         self.file_manager.write_output_txt(b.data)
                         return
                 if b.command == "E":
-                    if lba >= b.lba and lba < b.lba + b.range:
+                    if b.lba <= lba < b.lba + b.range:
                         self.file_manager.write_output_txt("0x00000000")
                         return
             self.read(lba)
@@ -246,7 +246,7 @@ class SSD:
             for i, b in enumerate(buffers):
                 # 1. W인 경우
                 if b.command == "W":
-                    if b.lba >= lba and b.lba < lba + erase_size:
+                    if lba <= b.lba < lba + erase_size:
                         continue
                     new_buffers.append(b)
                     continue
@@ -259,8 +259,8 @@ class SSD:
                         is_need_append_new_buffer = False
                         break
                     # erase 범위가 겹치는 경우
-                    elif ((b.lba <= lba and b.lba + b.range > lba) or
-                          (b.lba >= lba and b.lba < lba + erase_size)):
+                    elif ((b.lba <= lba < b.lba + b.range) or
+                          (lba <= b.lba < lba + erase_size)):
                         # range 합쳤을 때, 10 넘는 경우에는 합치지 않기
                         min_lba = b.lba
                         if b.lba > lba:
@@ -295,8 +295,9 @@ class SSD:
                             if lba + erase_size > SIZE_LBA or b.lba + b.range > SIZE_LBA:
                                 new_buffers.append(b)
                                 continue
-
-                            new_buffer.range = b.lba + b.range - lba
+                            new_range = b.lba + b.range - lba
+                            if new_range > erase_size:
+                                new_buffer.range = new_range
                             continue
                     new_buffers.append(b)
                     continue
