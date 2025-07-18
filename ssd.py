@@ -332,6 +332,8 @@ class SSD:
                 new_range = buffer.lba + buffer.range - lba
                 if new_range > erase_size:
                     new_buffer.range = new_range
+            elif buffer.command == "E":
+                new_buffers.append(buffer)
 
         if is_need_to_append:
             new_buffers.append(new_buffer)
