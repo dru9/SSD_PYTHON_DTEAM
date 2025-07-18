@@ -1,19 +1,15 @@
-from command_buffer import BufferManager, Buffer
+from buffer_manager import Buffer, BufferManager
 
 
-def test_bufferManager_flow1():
+def test_buffer_manager_1():
     bm = BufferManager()
-
-    buffers = bm.get_buffer()
     buffers = []
     bm.set_buffer(buffers)
     assert bm.get_buffer() == []
 
 
-def test_bufferManager_flow2():
+def test_buffer_manager_2():
     bm = BufferManager()
-    buffers = bm.get_buffer()
-
     buffer1 = Buffer()
     buffer1.command = "W"
     buffer1.lba = 20
@@ -32,9 +28,9 @@ def test_bufferManager_flow2():
 
 def test_buffer_empty():
     buffer = Buffer()
+    buffer.idx = 1
     expected = "1_empty"
-    result = buffer.to_string(1)
-
+    result = str(buffer)
     assert result == expected
 
 
@@ -43,9 +39,9 @@ def test_buffer_write():
     buffer.command = "W"
     buffer.lba = 20
     buffer.data = "0x12341234"
+    buffer.idx = 2
     expected = "2_W_20_0x12341234"
-    result = buffer.to_string(2)
-
+    result = str(buffer)
     assert result == expected
 
 
@@ -54,19 +50,7 @@ def test_buffer_erase():
     buffer.command = "E"
     buffer.lba = 10
     buffer.range = 4
+    buffer.idx = 2
     expected = "2_E_10_4"
-    result = buffer.to_string(2)
-
+    result = str(buffer)
     assert result == expected
-
-
-def test_find_prefix():
-    bm = BufferManager()
-    file_names = ["2_0x12341234", "3_0x12341234", "4_0x12341234", "5_0x12341234"]
-
-    result = bm._find_prefix_in_strlist("1", file_names)
-    assert result == False
-
-    file_names.append("1_0x12341234")
-    result = bm._find_prefix_in_strlist("1", file_names)
-    assert result == True

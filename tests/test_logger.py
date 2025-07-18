@@ -17,9 +17,11 @@ def logger():
 
 @pytest.fixture
 def test_case_for_print():
-    return {"method_name": "Shell.run",
-            "message": "hello",
-            "expected_line": f"[24.07.16 12:34] {"Shell.run".ljust(LOG_METHOD_NAME_WIDTH)}: hello\n"}
+    return {
+        "method_name": "Shell.run",
+        "message": "hello",
+        "expected_line": f"[24.07.16 12:34] {'Shell.run'.ljust(LOG_METHOD_NAME_WIDTH)}: hello\n"
+    }
 
 
 def test_format_log_output(fixed_datetime, logger, test_case_for_print):
@@ -35,7 +37,6 @@ def test_print_writes_log_line(fixed_datetime, logger, test_case_for_print):
             patch.object(Logger, "_get_timestamp", return_value=(fixed_datetime[0], fixed_datetime[1])), \
             patch("builtins.open", mock_file):
         logger.print(test_case_for_print["message"], test_case_for_print["method_name"])
-
         mock_file().write.assert_called_once_with(test_case_for_print["expected_line"])
 
 
@@ -45,7 +46,6 @@ def test_rollover_happens_when_log_exceeds_size(fixed_datetime, logger):
             patch("os.rename") as mock_rename, \
             patch("builtins.open", mock_open()):
         logger._rollover_if_needed()
-
         expected_new_log = ".\\until_240716_12h_34m_56s.log"
         mock_rename.assert_called_once_with(f".\\{LOG_FILE_NAME}", expected_new_log)
 

@@ -1,211 +1,277 @@
 import os
 import sys
+from typing import Any
 
-from command_buffer import BufferManager, Buffer
+import utils
+from buffer_manager import Buffer, BufferManager
 from constant import FILENAME, FILENAME_OUT, SIZE_LBA
 
 
 class FileManager:
-    def __init__(self):
-        self.init_nand_txt()
 
-    def init_nand_txt(self):
-        if not os.path.exists(FILENAME):
-            with open(FILENAME, "w") as f:
-                for i in range(SIZE_LBA):
-                    f.write(f"{i}\t0x00000000\n")
+    def __init__(self) -> None:
+        self.init_nand()
 
-    def _read_whole_contents_nand_txt(self) -> dict[int, str]:
+    @classmethod
+    def init_nand(cls) -> None:
+        if os.path.exists(FILENAME):
+            return
+
+        with open(FILENAME, "w") as f:
+            for i in range(SIZE_LBA):
+                f.write(f"{i}\t0x00000000\n")
+
+    @classmethod
+    def _read_whole_lines(cls) -> dict[int, str]:
         result = {}
         with open(FILENAME, "r") as f:
             for line in f:
                 line = line.strip()
                 if not line:
-                    continue  # 빈 줄 무시
+                    continue
                 parts = line.split("\t")
                 if len(parts) != 2:
                     continue
                 result[int(parts[0])] = parts[1]
         return result
 
-    def _save_to_nand_file(self, data) -> None:
+    @classmethod
+    def _save_to_nand(cls, data) -> None:
         with open(FILENAME, "w") as f:
             for key, value in data.items():
                 f.write(f"{key}\t{value}\n")
 
-    def read_nand_txt(self, lba):
-        data_list = self._read_whole_contents_nand_txt()
+    @classmethod
+    def read_nand(cls, lba):
+        data_list = cls._read_whole_lines()
         return data_list.get(lba, "")
 
-    def write_nand_txt(self, lba, change_data) -> bool:
-        nand_datas = self._read_whole_contents_nand_txt()
+    @classmethod
+    def write_nand(cls, lba, change_data) -> bool:
+        nand_datas = cls._read_whole_lines()
         current_data = nand_datas.get(lba, "")
         if current_data == "":
             return False
         nand_datas[lba] = change_data
-        self._save_to_nand_file(nand_datas)
+        cls._save_to_nand(nand_datas)
         return True
 
-    def erase_nand_txt(self, lba, size) -> bool:
-        nand_datas = self._read_whole_contents_nand_txt()
-        current_data = nand_datas.get(lba, "")
+    @classmethod
+    def erase_nand(cls, lba, size) -> bool:
+        lines = cls._read_whole_lines()
+        current_data = lines.get(lba, "")
         if current_data == "":
             return False
         for each_lba in range(lba, lba + size):
-            nand_datas[each_lba] = "0x00000000"
-        self._save_to_nand_file(nand_datas)
+            lines[each_lba] = "0x00000000"
+        cls._save_to_nand(lines)
         return True
 
-    def write_output_txt(self, contents: str):
+    @classmethod
+    def write_output(cls, contents: str):
         with open(FILENAME_OUT, "w") as f:
             f.write(contents)
 
 
 class SSD:
-    def __init__(self, file_manager):
-        self.file_manager = file_manager
+
+    def __init__(self) -> None:
+        self.file_manager = FileManager()
         self.buffer_manager = BufferManager()
 
-    def read(self, lba):
-        read_value = self.file_manager.read_nand_txt(lba)
+    def read(self, lba) -> None:
+        read_value = self.file_manager.read_nand(lba)
         if read_value == "":
-            self.file_manager.write_output_txt("ERROR")
+            self.file_manager.write_output("ERROR")
         else:
-            self.file_manager.write_output_txt(read_value)
+            self.file_manager.write_output(read_value)
 
-    def write(self, lba, data):
-        if not self.file_manager.write_nand_txt(lba, data):
-            self.file_manager.write_output_txt("ERROR")
-        self.file_manager.write_output_txt("")
+    def write(self, lba, data) -> None:
+        if not self.file_manager.write_nand(lba, data):
+            self.file_manager.write_output("ERROR")
+        self.file_manager.write_output("")
 
-    def check_hex(self, data):
-        if len(data) != 10:
-            return False
-        if not data[:2] == "0x":
-            return False
-        try:
-            int(data[2:], 16)
-            return True
-        except ValueError:
-            return False
+    def erase(self, lba, size) -> None:
+        if not self.file_manager.erase_nand(lba, size):
+            self.file_manager.write_output("ERROR")
+        self.file_manager.write_output("")
 
-    def _index_valid(self, num):
-        return num.isdigit() and 0 <= int(num) <= SIZE_LBA - 1
-
-    def _parse_int_or_empty(self, num):
-        try:
-            return int(num)
-        except ValueError:
-            return ""
-
-    def execute_command(self, args):
-        if not self._args_valid_guard_clauses(args):
-            return
-
-        mode = args[1]
-
-        if mode == "F":
-            self._execute_command_with_buffers(mode=mode)
-        else:
-            lba = int(args[2])
-            if mode == "W":
-                hex_string = args[3]
-                self._execute_command_with_buffers(mode=mode, lba=lba, data=hex_string)
-            elif mode == "R":
-                self._execute_command_with_buffers(mode=mode, lba=lba)
-            elif mode == "E":
-                size = self._parse_int_or_empty(args[3])
-                self._execute_command_with_buffers(mode=mode, lba=lba, erase_size=size)
-
-    def erase(self, lba, size):
-        if not self.file_manager.erase_nand_txt(lba, size):
-            self.file_manager.write_output_txt("ERROR")
-        self.file_manager.write_output_txt("")
-
-    def _args_valid_guard_clauses(self, args):
-        def _error(message):
-            print(message)
-            self.file_manager.write_output_txt("ERROR")
-            return False
-
-        argument_len = len(args)
-        if argument_len < 2:
-            return _error("At least one argument are required")
-
-        mode = args[1]
-        valid_modes = {"W", "R", "E", "F"}
-        if mode not in valid_modes:
-            return _error("Mode should be in ('W', 'R', 'E', 'F')")
-
-        # mode별 기대하는 argument 개수와 메시지
-        expected_args = {
-            "W": (4, "Mode W need lba and value"),
-            "R": (3, "Mode R need lba"),
-            "E": (4, "Mode E need lba and size"),
-            "F": (2, "Mode F need only command"),
-        }
-
-        expected_len, error_msg = expected_args[mode]
-        if argument_len != expected_len:
-            return _error(error_msg)
-
-        if mode == "F":
-            return True
-
-        lba = self._parse_int_or_empty(args[2])
-        if lba == "" or not self._index_valid(args[2]):
-            return _error("The index should be an integer among 0 ~ 99")
-
-        if mode == "W" and not self.check_hex(args[3]):
-            return _error("Value should to be hex string")
-
-        if mode == "E":
-            size = self._parse_int_or_empty(args[3])
-            if size == "" or size < 1 or size > 10 or lba + size > SIZE_LBA:
-                return _error("Size should be integer among 1 ~ 10 and lba + size must be smaller than 101")
-
-        return True
-
-    def flush(self, buffers):
+    def flush(self, buffers: list[Buffer]) -> None:
         for buffer in buffers:
             if buffer.command == "W":
                 self.write(buffer.lba, buffer.data)
             elif buffer.command == "E":
                 self.erase(buffer.lba, buffer.range)
             else:
-                self.file_manager.write_output_txt("ERROR")
+                self.file_manager.write_output("ERROR")
                 print("Invalid command")
                 break
         self.buffer_manager.set_buffer([])
 
-    def _process_read_mode(self, buffers, lba):
-        if not self.read_buffer_first(buffers, lba):
-            self.read(lba)
+    def run(self, args) -> None:
+        if not self._validate_command(args):
+            return
 
-    def _execute_command_with_buffers(self, mode, lba=None, data='', erase_size=0):
-        buffers = self.buffer_manager.get_buffer()
-        buffers = self._flush_when_buffer_are_full_or_flush_mode(buffers, mode)
+        mode = args[1]
+        kwargs: dict[str, Any] = {"mode": mode}
+        if mode == "R":
+            kwargs.update({"lba": int(args[2])})
+        elif mode == "W":
+            kwargs.update({"lba": int(args[2]), "data": args[3]})
+        elif mode == "E":
+            kwargs.update({"lba": int(args[2]), "erase_size": utils.parse_integer(args[3])})
+        else:
+            pass
+
+        self._execute_command(**kwargs)
+
+    def _validate_command(self, args):
+
+        def check_error(msg: str) -> None:
+            print(msg)
+            self.file_manager.write_output("ERROR")
+
+        length = len(args)
+        if length < 2:
+            check_error("At least one argument are required")
+            return False
+
+        mode = args[1]
+        valid_modes = {"W", "R", "E", "F"}
+        if mode not in valid_modes:
+            check_error(f"Invalid mode not in {valid_modes}")
+            return False
+
+        expected_args = {
+            "W": (4, "Mode W need lba and value"),
+            "R": (3, "Mode R need lba"),
+            "E": (4, "Mode E need lba and size"),
+            "F": (2, "Mode F need only command"),
+        }
+        expected_len, error_msg = expected_args[mode]
+        if length != expected_len:
+            check_error(error_msg)
+            return False
+
         if mode == "F":
-            self.file_manager.write_output_txt("")
+            return True
+
+        lba = utils.parse_integer(args[2])
+        if lba == "" or not utils.validate_index(args[2], valid_size=SIZE_LBA):
+            check_error("The index should be an integer among 0 ~ 99")
+            return False
+
+        if mode == "W" and not utils.validate_hexadecimal(args[3]):
+            check_error("Value should to be hex string")
+            return False
+
+        if mode == "E":
+            size = utils.parse_integer(args[3])
+            if size == "" or size < 1 or size > 10 or lba + size > SIZE_LBA:
+                check_error("Size should be integer among 1 ~ 10 and lba + size must be smaller than 101")
+                return False
+
+        return True
+
+    def _execute_command(self, mode, lba=None, data='', erase_size=0):
+        buffers = self.buffer_manager.get_buffer()
+
+        if len(buffers) == 5 or mode == "F":
+            self.flush(buffers)
+            buffers = self.buffer_manager.get_buffer()
+
+        if mode == "F":
+            self.file_manager.write_output("")
             return
 
         if mode == "R":
-            self._process_read_mode(buffers, lba)
+            self._process_read(buffers, lba)
             return
 
         new_buffer = Buffer(mode, lba, data, erase_size)
         if mode == "W":
-            new_buffers = self._process_write_mode(buffers, lba, new_buffer)
+            new_buffers = self._process_write(buffers, lba, new_buffer)
         elif mode == "E":
-            new_buffers = self._process_erase_mode(buffers, erase_size, lba, new_buffer)
+            new_buffers = self._process_erase(buffers, erase_size, lba, new_buffer)
         else:
             return
 
-        new_buffers = self.merge_overall(new_buffers)
+        new_buffers = self.buffer_manager.merge_overall(new_buffers)
         self.buffer_manager.set_buffer(new_buffers)
-        self.file_manager.write_output_txt("")
+        self.file_manager.write_output("")
 
-    def _process_erase_mode(self, buffers, erase_size, lba, new_buffer):
+    def _process_read(self, buffers: list[Buffer], lba: int) -> None:
+        """Conditionally read from the first buffer."""
+        from_first_buffer: bool = False
+        for _, buffer in reversed(list(enumerate(buffers))):
+            if buffer.command == "W" and buffer.lba == lba:
+                self.file_manager.write_output(buffer.data)
+                from_first_buffer = True
+                break
+
+            if buffer.command == "E" and buffer.lba <= lba < buffer.lba + buffer.range:
+                self.file_manager.write_output("0x00000000")
+                from_first_buffer = True
+                break
+
+        if not from_first_buffer:
+            self.read(lba)
+
+    def _process_write(self, buffers: list[Buffer], lba: int, new_buffer: Buffer) -> list[Buffer]:
+
+        def _handle_write(buffers, each_buffer, i, is_need_to_append, lba, new_buffer, new_buffers):
+            if each_buffer.lba != lba:
+                new_buffers.append(each_buffer)
+            else:
+                is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, new_buffer, new_buffers)
+            return is_need_to_append, new_buffers
+
+        def _handle_erase(buffers, each_buffer, i, is_need_to_append, lba, new_buffer, new_buffers):
+            if each_buffer.lba == lba:
+                if each_buffer.range == 1:
+                    is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, new_buffer, new_buffers)
+                if is_need_to_append:
+                    each_buffer.lba += 1
+                    each_buffer.range -= 1
+            elif (each_buffer.lba + each_buffer.range - 1) == lba:
+                each_buffer.range -= 1
+            if is_need_to_append:
+                new_buffers.append(each_buffer)
+            return is_need_to_append, new_buffers
+
+        new_buffers = []
+        is_need_to_append = True
+        for i, buffer in enumerate(buffers):
+            if buffer.command == "W":
+                is_need_to_append, new_buffers = _handle_write(
+                    buffers,
+                    buffer,
+                    i,
+                    is_need_to_append,
+                    lba,
+                    new_buffer,
+                    new_buffers,
+                )
+            elif buffer.command == "E":
+                is_need_to_append, new_buffers = _handle_erase(
+                    buffers,
+                    buffer,
+                    i,
+                    is_need_to_append,
+                    lba,
+                    new_buffer,
+                    new_buffers,
+                )
+            if is_need_to_append == False:
+                break
+
+        if is_need_to_append:
+            new_buffers.append(new_buffer)
+
+        return new_buffers
+
+    def _process_erase(self, buffers: list[Buffer], erase_size: int, lba: int, new_buffer: Buffer) -> list[Buffer]:
+
         def _is_erase_range_same(each_buffer, erase_size, lba):
             return each_buffer.lba == lba and each_buffer.lba + each_buffer.range == lba + erase_size
 
@@ -223,7 +289,7 @@ class SSD:
             else:
                 return False
 
-        def _continue_check_for_erase_range_overlap(each_buffer, erase_size, lba, new_buffers):
+        def _continue_to_check_overlap(each_buffer, erase_size, lba, new_buffers):
             if _check_merge_range_is_bigger_than_10(each_buffer, erase_size, lba):
                 new_buffers.append(each_buffer)
                 return True
@@ -240,126 +306,39 @@ class SSD:
             return False
 
         new_buffers = []
-        is_need_append_new_buffer = True
-        for i, each_buffer in enumerate(buffers):
-            if each_buffer.command == "W":
-                if lba > each_buffer.lba or each_buffer.lba >= lba + erase_size:
-                    new_buffers.append(each_buffer)
-            elif each_buffer.command == "E":
-                if _is_erase_range_same(each_buffer, erase_size, lba):
-                    is_need_append_new_buffer, new_buffers = self.update_buffer(buffers, i, new_buffer, new_buffers)
-                    break
-                elif _is_erase_range_overlap(each_buffer, erase_size, lba):
-                    if _continue_check_for_erase_range_overlap(each_buffer, erase_size, lba, new_buffers):
-                        continue
+        is_need_to_append = True
+        for i, buffer in enumerate(buffers):
+            if buffer.command == "W" and (lba > buffer.lba or buffer.lba >= lba + erase_size):
+                new_buffers.append(buffer)
 
-                    if each_buffer.lba <= lba:
-                        if each_buffer.lba + each_buffer.range > lba + erase_size:
-                            new_buffers += buffers[i:]
-                            is_need_append_new_buffer = False
-                            break
-
-                        each_buffer.range = lba + erase_size - each_buffer.lba
-                        is_need_append_new_buffer, new_buffers = self.update_buffer(buffers, i, each_buffer, new_buffers)
-                        break
-                    else:
-                        new_range = each_buffer.lba + each_buffer.range - lba
-                        if new_range > erase_size:
-                            new_buffer.range = new_range
-        if is_need_append_new_buffer:
-            new_buffers.append(new_buffer)
-        return new_buffers
-
-    def update_buffer(self, buffers, i, new_buffer, new_buffers):
-        new_buffers += buffers[i + 1:]
-        new_buffers.append(new_buffer)
-        return False, new_buffers
-
-    def _process_write_mode(self, buffers, lba, new_buffer):
-        def _handle_write(buffers, each_buffer, i, is_need_append_new_buffer, lba, new_buffer, new_buffers):
-            if each_buffer.lba != lba:
-                new_buffers.append(each_buffer)
-            else:
-                is_need_append_new_buffer, new_buffers = self.update_buffer(buffers, i, new_buffer, new_buffers)
-            return is_need_append_new_buffer, new_buffers
-
-        def _handle_erase(buffers, each_buffer, i, is_need_append_new_buffer, lba, new_buffer, new_buffers):
-            if each_buffer.lba == lba:
-                if each_buffer.range == 1:
-                    is_need_append_new_buffer, new_buffers = self.update_buffer(buffers, i, new_buffer, new_buffers)
-                if is_need_append_new_buffer:
-                    each_buffer.lba += 1
-                    each_buffer.range -= 1
-            elif (each_buffer.lba + each_buffer.range - 1) == lba:
-                each_buffer.range -= 1
-            if is_need_append_new_buffer:
-                new_buffers.append(each_buffer)
-            return is_need_append_new_buffer, new_buffers
-
-        new_buffers = []
-        is_need_append_new_buffer = True
-        for i, each_buffer in enumerate(buffers):
-            if each_buffer.command == "W":
-                is_need_append_new_buffer, new_buffers = _handle_write(buffers, each_buffer, i,
-                                                                       is_need_append_new_buffer, lba, new_buffer,
-                                                                       new_buffers)
-            elif each_buffer.command == "E":
-                is_need_append_new_buffer, new_buffers = _handle_erase(buffers, each_buffer, i,
-                                                                       is_need_append_new_buffer, lba, new_buffer,
-                                                                       new_buffers)
-            if is_need_append_new_buffer == False:
+            elif buffer.command == "E" and _is_erase_range_same(buffer, erase_size, lba):
+                is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, new_buffer, new_buffers)
                 break
 
-        if is_need_append_new_buffer:
+            elif buffer.command == "E" and _is_erase_range_overlap(buffer, erase_size, lba):
+                if _continue_to_check_overlap(buffer, erase_size, lba, new_buffers):
+                    continue
+
+                if buffer.lba <= lba:
+                    if buffer.lba + buffer.range > lba + erase_size:
+                        new_buffers += buffers[i:]
+                        is_need_to_append = False
+                        break
+
+                    buffer.range = lba + erase_size - buffer.lba
+                    is_need_to_append, new_buffers = self.buffer_manager.update(buffers, i, buffer, new_buffers)
+                    break
+
+                new_range = buffer.lba + buffer.range - lba
+                if new_range > erase_size:
+                    new_buffer.range = new_range
+
+        if is_need_to_append:
             new_buffers.append(new_buffer)
         return new_buffers
 
-    def read_buffer_first(self, buffers, lba):
-        for _, each_buffer in reversed(list(enumerate(buffers))):
-            if each_buffer.command == "W":
-                if each_buffer.lba == lba:
-                    self.file_manager.write_output_txt(each_buffer.data)
-                    return True
-            if each_buffer.command == "E":
-                if self.check_read_lba_is_in_erase_range(each_buffer, lba):
-                    self.file_manager.write_output_txt("0x00000000")
-                    return True
-        return False
-
-    def check_read_lba_is_in_erase_range(self, buffer, lba):
-        return buffer.lba <= lba < buffer.lba + buffer.range
-
-    def _flush_when_buffer_are_full_or_flush_mode(self, buffers, mode):
-        # flush 조건 체크
-        if len(buffers) == 5 or mode == "F":
-            self.flush(buffers)
-            buffers = self.buffer_manager.get_buffer()
-        return buffers
-
-    def merge_overall(self, new_buffers):
-        merge_buffers = []
-        command_list = [""] * 100
-        for buffer in new_buffers:
-            if buffer.command == "W":
-                command_list[buffer.lba] = buffer.command
-            elif buffer.command == "E":
-                for each_lba in range(buffer.lba, buffer.lba + buffer.range):
-                    command_list[each_lba] = buffer.command
-
-        for buffer in new_buffers:
-            if buffer.command == "W" and command_list[buffer.lba] == buffer.command:
-                merge_buffers.append(buffer)
-            elif buffer.command == "E":
-                valid_command_check = True
-                for each_lba in range(buffer.lba, buffer.lba + buffer.range):
-                    if command_list[each_lba] != buffer.command:
-                        valid_command_check = False
-                        break
-                if valid_command_check:
-                    merge_buffers.append(buffer)
-        return merge_buffers
 
 
 if __name__ == "__main__":
-    ssd = SSD(FileManager())
-    ssd.execute_command(sys.argv)
+    ssd = SSD()
+    ssd.run(sys.argv)
