@@ -202,3 +202,16 @@ def test_run_script(ssd_py_path, capsys):
 
     captured = capsys.readouterr()
     assert captured.out == expected
+
+def test_full_write_and_erase_100_and_full_read(ssd_py_path):
+    ret = Shell.execute_command(cmd=ShellCommandEnum.FULLWRITE, args=["0x22221111"])
+    assert ret == "[Full Write] Done"
+
+    ret = Shell.execute_command(cmd=ShellCommandEnum.ERASE_RANGE, args=[0, 99])
+    assert ret == "[Erase Range] Done"
+
+    expected = "[Full Read]"
+    for lba in range(SIZE_LBA):
+        expected += f"\nLBA {lba:0>2} : 0x00000000"
+    ret = Shell.execute_command(cmd=ShellCommandEnum.FULLREAD, args=[])
+    assert ret == expected
