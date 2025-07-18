@@ -183,7 +183,7 @@ def test_script_4(ssd_py_path):
     assert ret == MESSAGE_PASS
 
 
-def test_run_function(monkeypatch, capsys):
+def test_run_function(ssd_py_path, monkeypatch, capsys):
     inputs = iter(["read 100", "", "exit"])
     monkeypatch.setattr("builtins.input", lambda _: next(inputs))
     ret = Shell.run()
