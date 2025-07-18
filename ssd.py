@@ -75,23 +75,27 @@ class FileManager:
 
 class SSD:
 
-    def __init__(self) -> None:
-        self.file_manager = FileManager()
-        self.buffer_manager = BufferManager()
+    def __init__(
+            self,
+            file_manager: FileManager = FileManager(),
+            buffer_manager: BufferManager = BufferManager(),
+    ) -> None:
+        self.file_manager = file_manager
+        self.buffer_manager = buffer_manager
 
-    def read(self, lba) -> None:
+    def read(self, lba: int) -> None:
         read_value = self.file_manager.read_nand(lba)
         if read_value == "":
             self.file_manager.write_output("ERROR")
         else:
             self.file_manager.write_output(read_value)
 
-    def write(self, lba, data) -> None:
+    def write(self, lba: int, data: str) -> None:
         if not self.file_manager.write_nand(lba, data):
             self.file_manager.write_output("ERROR")
         self.file_manager.write_output("")
 
-    def erase(self, lba, size) -> None:
+    def erase(self, lba: int, size: int) -> None:
         if not self.file_manager.erase_nand(lba, size):
             self.file_manager.write_output("ERROR")
         self.file_manager.write_output("")
@@ -340,7 +344,15 @@ class SSD:
         return new_buffers
 
 
+def main() -> None:
+    file_manager = FileManager()
+    buffer_manager = BufferManager()
+    ssd = SSD(
+        file_manager=file_manager,
+        buffer_manager=buffer_manager,
+    )
+    ssd.run(sys.argv)
+
 
 if __name__ == "__main__":
-    ssd = SSD()
-    ssd.run(sys.argv)
+    main()
