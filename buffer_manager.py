@@ -39,7 +39,7 @@ class BufferManager:
         self.path.mkdir(parents=False, exist_ok=True)
         filenames = [p.name for p in self.path.iterdir()]
         for idx in range(1, BUFFER_INDEX + 1):
-            pattern: re.Pattern = re.compile(rf"^{idx}_*$")
+            pattern: re.Pattern = re.compile(rf"^{idx}_.*$")
             if any(pattern.match(f) for f in filenames):
                 continue
             new = self.path / f"{idx}_empty"
