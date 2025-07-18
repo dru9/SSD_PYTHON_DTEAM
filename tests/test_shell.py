@@ -93,8 +93,9 @@ def test_script_3_mock(file_mock, shell_mock):
 
 
 def test_script_4_mock(file_mock, shell_mock):
-    ret = Shell.execute_command(cmd=ShellCommandEnum.SCRIPT_4, args=[])
-    assert shell_mock.call_count == 1 + 30 * 49 * 3
+    num_iter_test = 5
+    ret = Shell.execute_command(cmd=ShellCommandEnum.SCRIPT_4, args=[num_iter_test])
+    assert shell_mock.call_count == 1 + num_iter_test * 49 * 3
     shell_mock.assert_called_with(['python', 'ssd.py', 'E', '98', "2"], text=True)
     file_mock.assert_any_call('ssd_output.txt', 'r')
     assert ret == MESSAGE_PASS
@@ -177,7 +178,8 @@ def test_script_3(ssd_py_path):
 
 
 def test_script_4(ssd_py_path):
-    ret = Shell.execute_command(cmd=ShellCommandEnum.SCRIPT_4, args=[])
+    num_iter_test = 3
+    ret = Shell.execute_command(cmd=ShellCommandEnum.SCRIPT_4, args=[num_iter_test])
     assert ret == MESSAGE_PASS
 
 

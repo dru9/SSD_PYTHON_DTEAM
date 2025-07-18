@@ -99,3 +99,27 @@ class BufferManager:
         new_buffers += buffers[idx + 1:]
         new_buffers.append(new_buffer)
         return False, new_buffers
+
+    @classmethod
+    def merge_overall(cls, new_buffers: list[Buffer]) -> list[Buffer]:
+        merge_buffers = []
+        command_list = [""] * 100
+        for buffer in new_buffers:
+            if buffer.command == "W":
+                command_list[buffer.lba] = buffer.command
+            elif buffer.command == "E":
+                for each_lba in range(buffer.lba, buffer.lba + buffer.range):
+                    command_list[each_lba] = buffer.command
+
+        for buffer in new_buffers:
+            if buffer.command == "W" and command_list[buffer.lba] == buffer.command:
+                merge_buffers.append(buffer)
+            elif buffer.command == "E":
+                valid_command_check = True
+                for each_lba in range(buffer.lba, buffer.lba + buffer.range):
+                    if command_list[each_lba] != buffer.command:
+                        valid_command_check = False
+                        break
+                if valid_command_check:
+                    merge_buffers.append(buffer)
+        return merge_buffers

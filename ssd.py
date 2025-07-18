@@ -196,7 +196,7 @@ class SSD:
         else:
             return
 
-        new_buffers = self.merge_overall(new_buffers)
+        new_buffers = self.buffer_manager.merge_overall(new_buffers)
         self.buffer_manager.set_buffer(new_buffers)
         self.file_manager.write_output("")
 
@@ -337,28 +337,6 @@ class SSD:
             new_buffers.append(new_buffer)
         return new_buffers
 
-    def merge_overall(self, new_buffers):
-        merge_buffers = []
-        command_list = [""] * 100
-        for buffer in new_buffers:
-            if buffer.command == "W":
-                command_list[buffer.lba] = buffer.command
-            elif buffer.command == "E":
-                for each_lba in range(buffer.lba, buffer.lba + buffer.range):
-                    command_list[each_lba] = buffer.command
-
-        for buffer in new_buffers:
-            if buffer.command == "W" and command_list[buffer.lba] == buffer.command:
-                merge_buffers.append(buffer)
-            elif buffer.command == "E":
-                valid_command_check = True
-                for each_lba in range(buffer.lba, buffer.lba + buffer.range):
-                    if command_list[each_lba] != buffer.command:
-                        valid_command_check = False
-                        break
-                if valid_command_check:
-                    merge_buffers.append(buffer)
-        return merge_buffers
 
 
 if __name__ == "__main__":
