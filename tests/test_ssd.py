@@ -146,39 +146,6 @@ def test_execute_command_when_erase_size_is_out_of_range_should_write_error():
     run_execute_command_and_assert([None, "E", "0", "HAHA"], 'w', 'ERROR')
 
 
-def test_buffer_overwrites_earlier_instructions_with_last_for_same_lba():
-    ssd = SSD()
-    commands = [
-        [None, "W", "20", "0xABCDABCD"],
-        [None, "W", "20", "0x12341234"],
-        [None, "E", "20", "1"]
-    ]
-    initial_buffers = []
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open', mock_open()), \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
-        ssd.run(commands[0])
-
-        args, kwargs = mock_set_buffer.call_args
-        buffer_written = args[0][0]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 20
-        assert buffer_written.data == "0xABCDABCD"
-
-        ssd.run(commands[1])
-        args, kwargs = mock_set_buffer.call_args
-        buffer_written = args[0][0]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 20
-        assert buffer_written.data == "0x12341234"
-
-        ssd.run(commands[2])
-        args, kwargs = mock_set_buffer.call_args
-        buffer_written = args[0][0]
-        assert buffer_written.command == "E"
-        assert buffer_written.lba == 20
-        assert buffer_written.range == 1
-
-
 def test_read_from_buffer_when_lba_is_cached():
     ssd = SSD()
     commands = [
@@ -188,61 +155,14 @@ def test_read_from_buffer_when_lba_is_cached():
                        Buffer(command="W", lba=50, data="0x12345678", range=""),
                        Buffer(command="W", lba=20, data="0xABABCCCC", range="")]
     expected_write = "0x12345678"
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers),
+          patch('builtins.open', mock_open()) as mocked_open, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer):
         ssd.run(commands[0])
 
         mock_set_buffer.assert_not_called()
+        mocked_open().read.assert_not_called()
         mocked_open().write.assert_called_once_with(expected_write)
-
-
-def test_merge_buffer_commands_when_possible():
-    ssd = SSD()
-    commands = [
-        [None, "E", "12", "3"]
-    ]
-    initial_buffers = [Buffer(command="W", lba=20, data="0xABCDABCD", range=""),
-                       Buffer(command="E", lba=10, data="", range=4)]
-
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
-        ssd.run(commands[0])
-
-        args, kwargs = mock_set_buffer.call_args
-        buffer_written = args[0][0]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 20
-        assert buffer_written.data == "0xABCDABCD"
-
-        buffer_written = args[0][1]
-        assert buffer_written.command == "E"
-        assert buffer_written.lba == 10
-        assert buffer_written.range == 5
-
-        assert len(args[0]) == 2
-
-
-def test_buffer_commands_write_when_possible():
-    ssd = SSD()
-    commands = [
-        [None, "W", "12", "0x0000AAAA"]
-    ]
-    initial_buffers = []
-
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
-        ssd.run(commands[0])
-
-        args, kwargs = mock_set_buffer.call_args
-        buffer_written = args[0][0]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 12
-        assert buffer_written.data == "0x0000AAAA"
-
-        assert len(args[0]) == 1
 
 
 def test_read_buffer_commands_when_not_exists():
@@ -254,126 +174,137 @@ def test_read_buffer_commands_when_not_exists():
                        Buffer(command="E", lba=10, data="", range=4)]
     expected_write = "0x00000000"
 
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers),
+          patch('builtins.open', mock_open()) as mocked_open, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer):
         ssd.run(commands[0])
 
         mock_set_buffer.assert_not_called()
         mocked_open().write.assert_called_once_with(expected_write)
 
 
-def test_merge_buffer_commands_when_not_same_index():
+def execute_commands_check_buffer_with_expected_buffers(commands, expectd_buffers_for_all_commands, initial_buffers):
     ssd = SSD()
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers),
+          patch('builtins.open', mock_open()) as mocked_open, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer):
+        for command, expected_buffers in zip(commands, expectd_buffers_for_all_commands):
+            ssd.run(command)
+
+            args, kwargs = mock_set_buffer.call_args
+            buffers = args[0]
+            assert len(buffers) == len(expected_buffers)
+
+            for buffer, expected in zip(buffers, expected_buffers):
+                assert buffer.command == expected["command"]
+                assert buffer.lba == expected["lba"]
+                assert str(buffer.data if expected["command"] == "W" else buffer.range) == str(
+                    expected["data_or_range"])
+
+
+def test_buffer_overwrites_earlier_instructions_with_last_for_same_lba():
+    commands = [
+        [None, "W", "20", "0xABCDABCD"],
+        [None, "W", "20", "0x12341234"],
+        [None, "E", "20", "1"]
+    ]
+    initial_buffers = []
+    expectd_buffers_for_all_commands = [
+        [{'command': 'W', 'lba': 20, 'data_or_range': "0xABCDABCD"}],
+        [{'command': 'W', 'lba': 20, 'data_or_range': "0x12341234"}],
+        [{'command': 'E', 'lba': 20, 'data_or_range': 1}]
+    ]
+
+    execute_commands_check_buffer_with_expected_buffers(commands, expectd_buffers_for_all_commands, initial_buffers)
+
+
+def test_merge_buffer_commands_when_possible():
+    commands = [
+        [None, "E", "12", "3"]
+    ]
+    initial_buffers = [Buffer(command="W", lba=20, data="0xABCDABCD", range=""),
+                       Buffer(command="E", lba=10, data="", range=4)]
+    expectd_buffers_for_all_commands = [
+        [
+            {"command": "W", "lba": 20, "data_or_range": "0xABCDABCD"},
+            {"command": "E", "lba": 10, "data_or_range": 5}
+        ]
+    ]
+
+    execute_commands_check_buffer_with_expected_buffers(commands, expectd_buffers_for_all_commands, initial_buffers)
+
+
+def test_buffer_commands_write_when_possible():
+    commands = [
+        [None, "W", "12", "0x0000AAAA"]
+    ]
+    initial_buffers = []
+    expectd_buffers_for_all_commands = [
+        [
+            {"command": "W", "lba": 12, "data_or_range": "0x0000AAAA"}
+        ]
+    ]
+
+    execute_commands_check_buffer_with_expected_buffers(commands, expectd_buffers_for_all_commands, initial_buffers)
+
+
+def test_merge_buffer_commands_when_not_same_index():
     commands = [
         [None, "W", "12", "0xAAAABBBB"]
     ]
     initial_buffers = [Buffer(command="W", lba=20, data="0xABCDABCD", range="")]
+    expectd_buffers_for_all_commands = [
+        [
+            {"command": "W", "lba": 20, "data_or_range": "0xABCDABCD"},
+            {"command": "W", "lba": 12, "data_or_range": "0xAAAABBBB"},
+        ]
+    ]
 
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
-        ssd.run(commands[0])
-
-        args, kwargs = mock_set_buffer.call_args
-        buffer_written = args[0][0]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 20
-        assert buffer_written.data == "0xABCDABCD"
-
-        buffer_written = args[0][1]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 12
-        assert buffer_written.data == "0xAAAABBBB"
-
-        assert len(args[0]) == 2
+    execute_commands_check_buffer_with_expected_buffers(commands, expectd_buffers_for_all_commands, initial_buffers)
 
 
 def test_merge_buffer_commands_when_same_index():
-    ssd = SSD()
     commands = [
         [None, "W", "12", "0xAAAABBBB"]
     ]
     initial_buffers = [Buffer(command="W", lba=12, data="0xABCDABCD", range=""),
                        Buffer(command="W", lba=22, data="0xABCDABCD", range="")]
-
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
-        ssd.run(commands[0])
-
-        args, kwargs = mock_set_buffer.call_args
-        buffer_written = args[0][0]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 22
-        assert buffer_written.data == "0xABCDABCD"
-
-        buffer_written = args[0][1]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 12
-        assert buffer_written.data == "0xAAAABBBB"
-
-        assert len(args[0]) == 2
-
+    expectd_buffers_for_all_commands = [
+        [
+            {"command": "W", "lba": 22, "data_or_range": "0xABCDABCD"},
+            {"command": "W", "lba": 12, "data_or_range": "0xAAAABBBB"},
+        ]
+    ]
+    execute_commands_check_buffer_with_expected_buffers(commands, expectd_buffers_for_all_commands, initial_buffers)
 
 def test_merge_buffer_commands_when_same_index_with_erase_range_1():
-    ssd = SSD()
     commands = [
         [None, "W", "12", "0xAAAABBBB"]
     ]
     initial_buffers = [Buffer(command="E", lba=12, data="", range=1),
                        Buffer(command="W", lba=22, data="0xABCDABCD", range="")]
-
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
-        ssd.run(commands[0])
-
-        args, kwargs = mock_set_buffer.call_args
-        buffer_written = args[0][0]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 22
-        assert buffer_written.data == "0xABCDABCD"
-
-        buffer_written = args[0][1]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 12
-        assert buffer_written.data == "0xAAAABBBB"
-
-        assert len(args[0]) == 2
-
+    expectd_buffers_for_all_commands = [
+        [
+            {"command": "W", "lba": 22, "data_or_range": "0xABCDABCD"},
+            {"command": "W", "lba": 12, "data_or_range": "0xAAAABBBB"},
+        ]
+    ]
+    execute_commands_check_buffer_with_expected_buffers(commands, expectd_buffers_for_all_commands, initial_buffers)
 
 def test_merge_buffer_commands_when_erase_range_2():
-    ssd = SSD()
     commands = [
         [None, "W", "12", "0xAAAABBBB"]
     ]
     initial_buffers = [Buffer(command="E", lba=12, data="", range=2),
                        Buffer(command="W", lba=22, data="0xABCDABCD", range="")]
-
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
-        ssd.run(commands[0])
-
-        args, kwargs = mock_set_buffer.call_args
-        buffer_written = args[0][0]
-        assert buffer_written.command == "E"
-        assert buffer_written.lba == 13
-        assert buffer_written.data == ""
-        assert buffer_written.range == 1
-
-        buffer_written = args[0][1]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 22
-        assert buffer_written.data == "0xABCDABCD"
-
-        buffer_written = args[0][2]
-        assert buffer_written.command == "W"
-        assert buffer_written.lba == 12
-        assert buffer_written.data == "0xAAAABBBB"
-
-        assert len(args[0]) == 3
+    expectd_buffers_for_all_commands = [
+        [
+            {"command": "E", "lba": 13, "data_or_range": "1"},
+            {"command": "W", "lba": 22, "data_or_range": "0xABCDABCD"},
+            {"command": "W", "lba": 12, "data_or_range": "0xAAAABBBB"}
+        ]
+    ]
+    execute_commands_check_buffer_with_expected_buffers(commands, expectd_buffers_for_all_commands, initial_buffers)
 
 
 def test_flush_buffer_when_mode_is_flush_should_execute_instruction():
@@ -454,9 +385,9 @@ def test_command_buffer_test_erase_keep_buffer():
     initial_buffers = [
         Buffer(command="E", lba=93, data="", range=7),
     ]
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers),
+          patch('builtins.open', mock_open()) as mocked_open, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer):
         ssd.run(commands[0])
 
         args, kwargs = mock_set_buffer.call_args
@@ -480,9 +411,9 @@ def test_command_buffer_test_erase_overlap_range():
         Buffer(command="E", lba=12, data="", range=2),
     ]
 
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers),
+          patch('builtins.open', mock_open()) as mocked_open, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer):
         ssd.run(commands[0])
 
         args, kwargs = mock_set_buffer.call_args
@@ -504,9 +435,9 @@ def test_command_buffer_test_erase_same_range_1():
         Buffer(command="E", lba=15, data="", range=5),
     ]
 
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers),
+          patch('builtins.open', mock_open()) as mocked_open, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer):
         ssd.run(commands[0])
 
         args, kwargs = mock_set_buffer.call_args
@@ -528,9 +459,9 @@ def test_command_buffer_test_erase_same_range_2():
         Buffer(command="E", lba=50, data="", range=6),
     ]
 
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers),
+          patch('builtins.open', mock_open()) as mocked_open, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer):
         ssd.run(commands[0])
 
         args, kwargs = mock_set_buffer.call_args
@@ -550,9 +481,9 @@ def test_command_buffer_test_erase_over10():
         Buffer(command="E", lba=16, data="", range=9),
     ]
 
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers),
+          patch('builtins.open', mock_open()) as mocked_open, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer):
         ssd.run(commands[0])
 
         args, kwargs = mock_set_buffer.call_args
@@ -572,9 +503,9 @@ def test_erase_command_expands_buffer_range_by_merging():
         Buffer(command="E", lba=93, data="", range=7),
     ]
 
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers),
+          patch('builtins.open', mock_open()) as mocked_open, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer):
         ssd.run(commands[0])
         args, kwargs = mock_set_buffer.call_args
         buffer_written1 = args[0][0]
@@ -593,9 +524,9 @@ def test_command_buffer_erase_larger_new_range():
         Buffer(command="E", lba=52, data="", range=2),
     ]
 
-    with patch.object(BufferManager, 'get_buffer', return_value=initial_buffers), patch('builtins.open',
-                                                                                        mock_open()) as mocked_open, \
-            patch.object(BufferManager, 'set_buffer') as mock_set_buffer:
+    with (patch.object(BufferManager, 'get_buffer', return_value=initial_buffers),
+          patch('builtins.open', mock_open()) as mocked_open, \
+          patch.object(BufferManager, 'set_buffer') as mock_set_buffer):
         ssd.run(commands[0])
 
         args, kwargs = mock_set_buffer.call_args
@@ -611,7 +542,6 @@ def test_execute_command_when_flush_command_invalid_should_write_error():
 
 
 def test_merge_erase_buffer():
-    ssd = SSD()
     commands = [
         [None, "E", "20", "2"],
         [None, "E", "21", "2"],
@@ -619,20 +549,10 @@ def test_merge_erase_buffer():
     expected = [
         [None, "E", "20", "3"],
     ]
-    ssd.buffer_manager.set_buffer([])
-    for command in commands:
-        ssd.run(command)
-    buffers = ssd.buffer_manager.get_buffer()
-    assert len(expected) == len(buffers)
-
-    for gt, buffer_written in zip(expected, buffers):
-        assert str(buffer_written.command) == gt[1]
-        assert str(buffer_written.lba) == gt[2]
-        assert str(buffer_written.range) == gt[3]
+    execute_command_and_test_buffer_with_expected(commands, expected, False)
 
 
 def test_merge_erase_buffer_hard():
-    ssd = SSD()
     commands = [
         [None, "E", "20", "1"],
         [None, "E", "21", "2"],
@@ -640,20 +560,10 @@ def test_merge_erase_buffer_hard():
     expected = [
         [None, "E", "20", "3"],
     ]
-    ssd.buffer_manager.set_buffer([])
-    for command in commands:
-        ssd.run(command)
-    buffers = ssd.buffer_manager.get_buffer()
-    assert len(expected) == len(buffers)
-
-    for gt, buffer_written in zip(expected, buffers):
-        assert str(buffer_written.command) == gt[1]
-        assert str(buffer_written.lba) == gt[2]
-        assert str(buffer_written.range) == gt[3]
+    execute_command_and_test_buffer_with_expected(commands, expected, False)
 
 
 def test_remove_erase_buffer():
-    ssd = SSD()
     commands = [
         [None, "E", "20", "3"],
         [None, "W", "20", "0xABCDABC0"],
@@ -665,20 +575,10 @@ def test_remove_erase_buffer():
         [None, "W", "21", "0xABCDABC0"],
         [None, "W", "22", "0xABCDABC0"],
     ]
-    ssd.buffer_manager.set_buffer([])
-    for command in commands:
-        ssd.run(command)
-    buffers = ssd.buffer_manager.get_buffer()
-    assert len(expected) == len(buffers)
-
-    for gt, buffer_written in zip(expected, buffers):
-        assert str(buffer_written.command) == gt[1]
-        assert str(buffer_written.lba) == gt[2]
-        assert str(buffer_written.data) == gt[3]
+    execute_command_and_test_buffer_with_expected(commands, expected)
 
 
 def test_remove_erase_buffer_hard():
-    ssd = SSD()
     commands = [
         [None, "E", "20", "3"],
         [None, "W", "21", "0xABCDABC0"],
@@ -690,13 +590,20 @@ def test_remove_erase_buffer_hard():
         [None, "W", "20", "0xABCDABC0"],
         [None, "W", "22", "0xABCDABC0"],
     ]
+    execute_command_and_test_buffer_with_expected(commands, expected)
+
+
+def execute_command_and_test_buffer_with_expected(commands, expected, data_flag=True):
+    ssd = SSD()
     ssd.buffer_manager.set_buffer([])
     for command in commands:
         ssd.run(command)
     buffers = ssd.buffer_manager.get_buffer()
     assert len(expected) == len(buffers)
-
     for gt, buffer_written in zip(expected, buffers):
         assert str(buffer_written.command) == gt[1]
         assert str(buffer_written.lba) == gt[2]
-        assert str(buffer_written.data) == gt[3]
+        if data_flag:
+            assert str(buffer_written.data) == gt[3]
+        else:
+            assert str(buffer_written.range) == gt[3]
